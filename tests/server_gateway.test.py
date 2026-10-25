@@ -47,7 +47,7 @@ INVOICE = {"inv_no": "INV-PREVIEW-1", "date": "22/10/2026", "inv_type": "materia
 def start_gateway(data, port, *extra):
     return subprocess.Popen([sys.executable, "-m", "server.gateway", "--host", "127.0.0.1",
                              "--port", str(port), *extra],
-                            cwd=str(S.ROOT), env=S.env_for(data, BUSINESSHUB_LOGIN_MAX_FAILS="3"),
+                            cwd=str(S.ROOT), env=S.env_for(data),
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
@@ -321,11 +321,11 @@ class Gateway(unittest.TestCase):
         self.assertEqual(st, 200)
         self.assertEqual(self.api("ahmed", "get_today")[0], 401, "logout did not end the session")
 
-    def test_zz_repeated_wrong_passwords_lock_the_door(self):
+    def test_zz_repeated_wrong_passwords_do_not_force_a_wait(self):
         for _ in range(3):
             self.login("waleed", "wrong-again")
         status, body = self.login("waleed")
-        self.assertEqual(status, 429, "the right password still worked straight after 3 wrong ones")
+        self.assertEqual(status, 200, body)
 
 
 class PcSideCallsStayListed(unittest.TestCase):
@@ -465,4 +465,3 @@ class NeverSentTwice(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
-

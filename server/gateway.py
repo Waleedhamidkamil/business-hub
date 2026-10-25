@@ -25,9 +25,8 @@ ends (a Windows job object, and each engine also watches the gateway).
 
 Sessions: a random token per login; the server keeps only its SHA-256, in
 data/server/sessions.json, so a restart logs nobody out and the file is no use
-to whoever reads it. Too many wrong passwords for one name lock that name for
-a while (BUSINESSHUB_LOGIN_MAX_FAILS, default 5; BUSINESSHUB_LOGIN_LOCK_SECONDS,
-default 300).
+to whoever reads it. Login failures are rejected normally; the office gateway
+does not impose a temporary account wait.
 """
 from __future__ import annotations
 
@@ -78,8 +77,6 @@ MAX_BODY = 200 * 1024 * 1024          # an upload, or a call carrying a scanned 
 CALL_TIMEOUT = 600                     # a big report or a long PDF batch
 START_TIMEOUT = 180
 SESSION_DAYS = float(os.environ.get("BUSINESSHUB_SESSION_DAYS") or 30)
-MAX_FAILS = int(os.environ.get("BUSINESSHUB_LOGIN_MAX_FAILS") or 5)
-LOCK_SECONDS = float(os.environ.get("BUSINESSHUB_LOGIN_LOCK_SECONDS") or 300)
 WATCH_EVERY = 300                      # the watchdog's round, seconds
 LOW_DISK = 5 * 1024 ** 3               # warn below 5 GB free
 
@@ -189,35 +186,6 @@ class Sessions:
             if keys:
                 _write_json(self.path, self._data)
             return len(keys)
-
-
-class LoginGuard:
-    """Too many wrong passwords for one name lock that name for a while."""
-
-    def __init__(self):
-        self._lock = threading.Lock()
-        self._fails: dict[str, list] = {}          # name -> [wrong so far, locked until]
-
-    def wait_left(self, name: str) -> int:
-        with self._lock:
-            until = self._fails.get(name, [0, 0.0])[1]
-        return max(0, int(until - time.time() + 0.999))
-
-    def failed(self, name: str) -> bool:
-        """Count one wrong password; True when this one locks the name."""
-        with self._lock:
-            if len(self._fails) > 10000:            # someone typing random names
-                self._fails.clear()
-            count = self._fails.get(name, [0, 0.0])[0] + 1
-            if count >= MAX_FAILS:
-                self._fails[name] = [0, time.time() + LOCK_SECONDS]
-                return True
-            self._fails[name] = [count, 0.0]
-            return False
-
-    def succeeded(self, name: str) -> None:
-        with self._lock:
-            self._fails.pop(name, None)
 
 
 # ---------------------------------------------------------------- engines
@@ -567,7 +535,6 @@ class Gateway(ExclusiveHTTPServer):
         self.log = Log(data / "server" / "gateway.log")
         self.users = UserStore(data / "users" / "users.json")
         self.sessions = Sessions(data / "server" / "sessions.json")
-        self.guard = LoginGuard()
         names = api_method_names()
         self.forwarded = [n for n in names if n not in LOCAL_ONLY]
         self.local = [n for n in LOCAL_ONLY if n in names]
@@ -867,28 +834,15 @@ class Handler(BaseHTTPRequestHandler):
 
     def _login(self, body: dict) -> None:
         name = str(body.get("user") or "").strip().lower()
-        guard, log = self.server.guard, self.server.log
-        wait = guard.wait_left(name)
-        if wait:
-            log(f"login refused for {name!r} from {self._ip}: locked for {wait}s")
-            activity_log.record(source="login", action="login", outcome="warning", person=name, pc=self._pc,
-                                summary=f"Login refused for '{name}': too many wrong passwords",
-                                message=f"locked for another {wait} s")
-            minutes = max(1, round(wait / 60))
-            return self._json(429, {"ok": False, "wait_seconds": wait,
-                                    "error": f"Too many wrong passwords. Try again in {minutes} minute"
-                                             f"{'s' if minutes > 1 else ''}."})
         who = self.server.users.verify(name, str(body.get("password") or ""))
         if not who:
-            locked = guard.failed(name)
-            log(f"login FAILED for {name!r} from {self._ip}" + (" - name locked" if locked else ""))
+            self.server.log(f"login FAILED for {name!r} from {self._ip}")
             activity_log.record(source="login", action="login", outcome="refused", person=name, pc=self._pc,
                                 summary=f"Wrong name or password for '{name}'",
-                                message="the name is now locked for a while" if locked else "")
+                                message="")
             return self._json(401, {"ok": False, "error": "Wrong name or password."})
-        guard.succeeded(name)
         token = self.server.sessions.create(who["user"], client=self._ip)
-        log(f"login {who['user']} from {self._ip}")
+        self.server.log(f"login {who['user']} from {self._ip}")
         activity_log.record(source="login", action="login", outcome="ok", person=who["user"], pc=self._pc,
                             summary=f"{who.get('display') or who['user']} logged in")
         self.server.pool.warm(who["user"])          # the first screen should not wait for it
