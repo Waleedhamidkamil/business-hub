@@ -138,7 +138,8 @@ async function bootstrap() {
         try {
             const access = await api().activity_can_view();
             const officeButton = document.getElementById("dashOfficeBtn");
-            if (officeButton) officeButton.hidden = !(access && access.can);
+            const officeApiAvailable = typeof api().office_management_summary === "function";
+            if (officeButton) officeButton.hidden = !(access && access.can && officeApiAvailable);
         } catch (e) { /* non-server desktop mode has no office management */ }
         populateOpenSelectors();
         applyTheme(window.prefGet("theme", "light"), { persist: false });
