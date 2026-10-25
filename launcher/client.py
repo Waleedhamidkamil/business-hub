@@ -45,6 +45,8 @@ LOCAL_CALLS = ("open_path", "reveal_in_folder", "copy_file_to_clipboard", "print
                "dm_pick_file", "dm_pick_folder", "bulk_pick_spreadsheet",
                "attach_doc_signed_copy", "gate_ready")
 LAUNCHER_CALLS = ("launcher_state", "launcher_login", "launcher_resume", "launcher_logout")
+OFFICE_CALLS = ("office_management_summary", "office_set_enabled",
+                "office_revoke_session", "office_reset_password")
 # Saves whose PDF the person keeps a copy of.
 KEEP_A_COPY = ("save_quote", "save_dn", "save_inv", "save_po", "make_client_statement")
 AT_THE_SERVER = "In the office version this is done at the server itself."
@@ -300,7 +302,10 @@ class LauncherApi:
 
     # ---- what pywebview sees
     def __dir__(self):
-        return sorted(set(object.__dir__(self)) | self.__dict__.get("_forwarded", frozenset()))
+        names = set(object.__dir__(self)) | self.__dict__.get("_forwarded", frozenset())
+        if self._server is None:
+            names.difference_update(OFFICE_CALLS)
+        return sorted(names)
 
     def __getattr__(self, name: str):
         if name.startswith("_") or name not in self.__dict__.get("_forwarded", frozenset()):
@@ -343,16 +348,16 @@ class LauncherApi:
             raise ServerError(body.get("error") or f"The server answered {status}.")
         return body
 
-    def _office_management_summary(self) -> dict:
+    def office_management_summary(self) -> dict:
         return self._admin_call("summary")
 
-    def _office_set_enabled(self, user: str, enabled: bool) -> dict:
+    def office_set_enabled(self, user: str, enabled: bool) -> dict:
         return self._admin_call("set-enabled", {"user": user, "enabled": bool(enabled)})
 
-    def _office_revoke_session(self, user: str) -> dict:
+    def office_revoke_session(self, user: str) -> dict:
         return self._admin_call("revoke-session", {"user": user})
 
-    def _office_reset_password(self, user: str, password: str) -> dict:
+    def office_reset_password(self, user: str, password: str) -> dict:
         return self._admin_call("reset-password", {"user": user, "password": password})
 
     def _guard(self) -> Server:
@@ -689,4 +694,3 @@ class LauncherApi:
     def gate_ready(self, marks: dict | None = None) -> dict:
         """No launch card on a PC: the page goes straight on."""
         return {"ok": True, "gate": False}
-
