@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>{{ inv.inv_no or 'Invoice' }}</title>
+{% if inline_css %}<style>{{ css_text|safe }}</style>{% else %}<link rel="stylesheet" href="{{ css_href }}">{% endif %}
+</head>
+<body class="inv-document" style="--brand: {{ brand }};">
+
+{% for page in pages %}
+<section class="inv-page{% if not loop.last %} page-break{% endif %}">
+
+    {% if page.show_header %}
+    <header class="i-header">
+        <div class="i-logo">{% if logo_data_uri %}<img src="{{ logo_data_uri }}" alt="logo">{% endif %}</div>
+        <div class="i-company">
+            {% for line in company.name_lines %}<div>{{ line }}</div>{% endfor %}
+        </div>
+    </header>
+    <div class="i-rule"></div>
+
+    <h1 class="i-title">{{ schema_label }}</h1>
+
+    <div class="i-meta">
+        <div class="i-mrow"><div class="i-lbl">Date</div><div class="i-val">{{ inv.date }}</div></div>
+        <div class="i-mrow"><div class="i-lbl">Invoice No.</div><div class="i-val">{{ inv.inv_no }}</div></div>
+        {# Same order and spelling as the quotation and delivery note (2026-10-02). #}
+        <div class="i-mrow"><div class="i-lbl">LPO No.</div><div class="i-val">{{ inv.lpo_no }}</div></div>
+        <div class="i-mrow"><div class="i-lbl">Client Name</div><div class="i-val">{{ inv.client_name }}</div></div>
+        <div class="i-mrow"><div class="i-lbl">Client Address</div><div class="i-val">{{ inv.client_address }}</div></div>
+    </div>
+    {% endif %}
+
+    {# Phase L.3 - INV keeps its CSS-default 14mm row height, but multi-page
+       pages get an explicit row-min so packing is balanced. #}
+    <table class="i-table{% if autofit %} i-table--autofit{% endif %}" style="
+            {% if page.row_min_mm %}--i-row-mm: {{ page.row_min_mm }}mm;{% endif %}
+            {% if page.head_row_mm %}--i-head-mm: {{ page.head_row_mm }}mm;{% endif %}
+            {% if page.tax_row_mm %}--i-tax-mm: {{ page.tax_row_mm }}mm;{% endif %}
+            {% if page.total_row_mm %}--i-total-mm: {{ page.total_row_mm }}mm;{% endif %}
+            {% if page.fill_table %}height: {{ page.table_area_mm }}mm;{% endif %}">
+        <thead>
+            <tr>
+                {% for c in columns %}<th class="al-{{ c.align }}" style="width: {{ c.width }}%;">{{ c.head }}</th>{% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in page.display_rows %}
+            <tr>
+                {% for cell in row %}<td class="al-{{ cell.align }}">{{ cell.val }}</td>{% endfor %}
+            </tr>
+            {% endfor %}
+
+            {% if page.show_footer %}
+            {# Per invoice (2026-10-11): some invoices carry no withholding at
+               all. `build_layout` stops reserving the row's height for the same
+               documents, so hiding it leaves no gap on the last page. #}
+            {% if show_withholding %}
+            <tr class="i-tax-row">
+                <td colspan="{{ tax_label_span }}" class="al-center">{{ company.tax_label }}</td>
+                <td class="al-center i-tax-status">{{ withholding_status }}</td>
+            </tr>
+            {% endif %}
+            <tr class="i-total-row">
+                <td colspan="{{ total_label_span }}" class="al-center i-total-lbl">Total</td>
+                <td colspan="{{ total_words_span }}" class="al-center i-total-words">{{ grand_words }}</td>
+                <td colspan="{{ total_amount_span }}" class="al-center i-total-amt">{{ grand_amount }}</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    {% if page.show_footer %}
+    <p class="i-closing">{{ company.closing }}</p>
+
+    <div class="i-footer">
+        {% if bank %}
+        <div class="i-payment">
+            <div class="i-payment-head">Payment Info :</div>
+            <div class="i-payment-body">
+                <div class="i-bank-line bold">{{ bank.company_line }}</div>
+                <div class="i-bank-line">Bank Name: {{ bank.bank_name }}{% if bank.branch %},{% endif %}</div>
+                {% if bank.branch %}<div class="i-bank-line">Branch: {{ bank.branch }}</div>{% endif %}
+                {% if bank.swift %}<div class="i-bank-line">Swift Code: {{ bank.swift }}</div>{% endif %}
+                {% if bank.account_no %}<div class="i-bank-line">Account No.: {{ bank.account_no }}</div>{% endif %}
+                {% if bank.iban %}<div class="i-bank-line">IBAN: {{ bank.iban }}</div>{% endif %}
+                {% if bank.currency %}<div class="i-bank-line">Currency: {{ bank.currency }}</div>{% endif %}
+            </div>
+        </div>
+        {% else %}
+        {# Phase G.12: Cash invoices - show "PAID IN CASH" instead of bank info. #}
+        <div class="i-payment i-payment-cash">
+            <div class="i-payment-head">PAID IN CASH</div>
+        </div>
+        {% endif %}
+        <div class="i-sign sig-box">
+            {{ sig_overlay_main|safe }}
+            <div class="i-sign-line"></div>
+            <div class="i-sign-label">{{ company.signature_label }}</div>
+            <div class="i-sign-name">{{ company.signature_name }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# Phase L.3 - page number bottom-left. #}
+    <div class="page-number">Page {{ page.page_index }} of {{ page.total_pages }}</div>
+
+</section>
+{% endfor %}
+
+</body>
+</html>

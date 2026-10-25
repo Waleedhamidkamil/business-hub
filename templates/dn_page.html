@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>{{ dn.dn_no or 'Delivery Note' }}</title>
+{% if inline_css %}<style>{{ css_text|safe }}</style>{% else %}<link rel="stylesheet" href="{{ css_href }}">{% endif %}
+</head>
+<body class="dn-document" style="--brand: {{ brand }};">
+
+{% for page in pages %}
+<section class="dn-page{% if not loop.last %} page-break{% endif %}">
+
+    {% if page.show_header %}
+    <header class="d-header">
+        <div class="d-logo">{% if logo_data_uri %}<img src="{{ logo_data_uri }}" alt="logo">{% endif %}</div>
+        <div class="d-company">
+            {% for line in company.name_lines %}<div>{{ line }}</div>{% endfor %}
+        </div>
+    </header>
+    <div class="d-rule"></div>
+
+    <h1 class="d-title">{{ company.title }}</h1>
+
+    <div class="d-meta">
+        <div class="d-mrow"><div class="d-lbl">Date</div><div class="d-val">{{ dn.date }}</div></div>
+        {# Same order and spelling as the quotation and invoice (2026-10-02). #}
+        <div class="d-mrow"><div class="d-lbl">DN No.</div><div class="d-val">{{ dn.dn_no }}</div></div>
+        <div class="d-mrow"><div class="d-lbl">LPO No.</div><div class="d-val">{{ dn.lpo_no }}</div></div>
+        <div class="d-mrow"><div class="d-lbl">Client Name</div><div class="d-val">{{ dn.client_name }}</div></div>
+        <div class="d-mrow"><div class="d-lbl">Client Address</div><div class="d-val">{{ dn.client_address }}</div></div>
+    </div>
+    {% endif %}
+
+    {# Phase L.3 - set --dn-row-mm per page so each row stretches to fill
+       the available area (cap'd in Python). Combined with the CSS rule
+       `.d-table tbody tr { height: var(--dn-row-mm, 12mm); }` this is what
+       makes few-item pages look nice and many-item pages pack tightly. #}
+    <table class="d-table{% if autofit %} d-table--autofit{% endif %}" style="
+            --dn-row-mm: {{ page.row_min_mm if page.row_min_mm else 12 }}mm;
+            {% if page.head_row_mm %}--dn-head-mm: {{ page.head_row_mm }}mm;{% endif %}
+            {% if page.grand_row_mm %}--dn-grand-mm: {{ page.grand_row_mm }}mm;{% endif %}
+            {% if page.fill_table %}height: {{ page.table_area_mm }}mm;{% endif %}">
+        <thead>
+            <tr>
+                {% for c in columns %}<th class="al-{{ c.align }}" style="width: {{ c.width }}%;">{{ c.head }}</th>{% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in page.display_rows %}
+            <tr>
+                {% for cell in row %}<td class="al-{{ cell.align }}">{{ cell.val }}</td>{% endfor %}
+            </tr>
+            {% endfor %}
+
+            {% if grand_total and page.show_footer %}
+            <tr class="d-grand-row">
+                <td colspan="{{ grand_total.label_span }}"  class="al-center d-grand-lbl">Total</td>
+                <td colspan="{{ grand_total.words_span }}"  class="al-center d-grand-words">{{ grand_total.words }}</td>
+                <td colspan="{{ grand_total.amount_span }}" class="al-center d-grand-amt">{{ grand_total.amount }}</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    {% if page.show_footer %}
+    <p class="d-closing">{{ company.closing }}</p>
+
+    <div class="d-footer">
+        {# Recipient box is intentionally left bare - the client signs it
+           by hand on receipt; we never stamp/sign it digitally. #}
+        <div class="d-sign d-sign-left">
+            <div class="d-sign-line"></div>
+            <div class="d-sign-label">{{ company.recipient_label }}</div>
+        </div>
+        <div class="d-sign d-sign-right sig-box">
+            {{ sig_overlay_supplier|safe }}
+            <div class="d-sign-line"></div>
+            <div class="d-sign-label">{{ company.supplier_label }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# Phase L.3 - page number bottom-left of every page. #}
+    <div class="page-number">Page {{ page.page_index }} of {{ page.total_pages }}</div>
+
+</section>
+{% endfor %}
+
+</body>
+</html>

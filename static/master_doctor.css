@@ -1,0 +1,77 @@
+/* Catalogue review (the "Doctor") - 2026-09-10.
+   Colour never carries meaning alone: a price disagreement is the WORDS
+   "the copies disagree about the price", and the amber rule beside it is
+   reinforcement only. There is no green counterpart anywhere in here. */
+.mdoc-panel { display: grid; gap: 14px; padding: 4px 2px 24px; overflow: auto; }
+
+.mdoc-head { display: flex; align-items: flex-start; justify-content: space-between;
+    gap: 16px; }
+.mdoc-head h3 { margin: 0 0 3px; font-size: 15px; }
+.mdoc-head p { margin: 0; max-width: 62ch; color: var(--text-muted, var(--text-subtle));
+    font-size: 11.5px; line-height: 1.45; }
+
+.mdoc-chips { margin: 0; }
+
+.mdoc-list { display: grid; gap: 12px; }
+
+.mdoc-card { border: 1px solid var(--border); border-radius: 11px;
+    background: var(--surface); padding: 13px 14px; display: grid; gap: 10px; }
+.mdoc-card > header { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap; }
+.mdoc-card h4 { margin: 0; font-size: 13.5px; unicode-bidi: isolate; }
+.mdoc-kind { padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px;
+    color: var(--text-muted, var(--text-subtle)); font-size: 9.5px; font-weight: 700;
+    letter-spacing: .05em; text-transform: uppercase; }
+
+.mdoc-warn, .mdoc-note { margin: 0; font-size: 11.5px; line-height: 1.45; }
+.mdoc-warn { padding: 7px 10px; border-inline-start: 3px solid #b54708;
+    border-radius: 0 7px 7px 0; background: #fff8f6; color: #7a2e0e; }
+.mdoc-note { color: var(--text-muted, var(--text-subtle)); }
+
+.mdoc-rows { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.mdoc-rows td { padding: 5px 8px; border-top: 1px solid var(--border-soft, var(--border));
+    vertical-align: top; }
+.mdoc-rows tr.is-keep td { background: var(--surface-sunk, #f5f6f8); }
+.mdoc-no { width: 1%; white-space: nowrap; color: var(--text-muted, var(--text-subtle));
+    font-variant-numeric: tabular-nums; }
+.mdoc-name strong { display: block; font-size: 12px; unicode-bidi: isolate; }
+.mdoc-name small { display: block; margin-top: 1px; unicode-bidi: isolate;
+    color: var(--text-muted, var(--text-subtle)); font-size: 10px; }
+.mdoc-unit, .mdoc-money, .mdoc-uses { white-space: nowrap;
+    color: var(--text-muted, var(--text-subtle)); }
+.mdoc-money { font-variant-numeric: tabular-nums; }
+.mdoc-keep { width: 1%; white-space: nowrap; color: var(--navy); font-size: 10px;
+    font-weight: 700; }
+
+.mdoc-ba { display: grid; gap: 5px; font-size: 11.5px; }
+.mdoc-ba > div { display: flex; align-items: baseline; gap: 9px; }
+.mdoc-ba span { width: 42px; flex: 0 0 auto; color: var(--text-muted, var(--text-subtle));
+    font-size: 9.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+.mdoc-ba code { padding: 3px 7px; border-radius: 6px; unicode-bidi: isolate;
+    background: var(--surface-sunk, #f5f6f8); font-size: 11px;
+    white-space: pre-wrap; word-break: break-word; }
+
+.mdoc-describe { display: grid; gap: 7px; }
+.mdoc-desc-row { display: grid; grid-template-columns: minmax(120px, 22%) minmax(0, 1fr);
+    align-items: center; gap: 9px; }
+.mdoc-desc-label { color: var(--text-muted, var(--text-subtle)); font-size: 10.5px; }
+.mdoc-desc-label em { display: block; font-style: normal; font-weight: 700;
+    color: var(--text); font-variant-numeric: tabular-nums; }
+.mdoc-desc-row input { min-height: 30px; padding: 5px 8px; border: 1px solid var(--border);
+    border-radius: 7px; background: var(--surface); color: var(--text); font: inherit;
+    font-size: 11.5px; box-sizing: border-box; width: 100%; }
+.mdoc-desc-row input:focus { outline: 2px solid var(--navy); outline-offset: 1px; }
+
+.mdoc-card > footer { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.mdoc-card > footer small { flex: 1 1 20ch; min-width: 18ch;
+    color: var(--text-muted, var(--text-subtle)); font-size: 10.5px; line-height: 1.4; }
+
+.mdoc-empty { margin: 26px 0; text-align: center;
+    color: var(--text-muted, var(--text-subtle)); font-size: 12px; }
+
+@media (max-width: 820px) {
+    .mdoc-head { flex-direction: column; }
+    .mdoc-rows, .mdoc-rows tbody, .mdoc-rows tr, .mdoc-rows td { display: block; width: 100%; }
+    .mdoc-rows tr { padding: 5px 0; border-top: 1px solid var(--border); }
+    .mdoc-rows td { border: 0; padding: 2px 0; }
+    .mdoc-desc-row { grid-template-columns: minmax(0, 1fr); }
+}

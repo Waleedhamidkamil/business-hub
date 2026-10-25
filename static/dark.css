@@ -1,0 +1,691 @@
+/* ============================================================
+   ABRAJ - DARK MODE  (Phase X.18)
+   Activated only when <html data-theme="dark">. Loaded AFTER
+   app_styles.css so these win by source order + the extra
+   html[data-theme="dark"] specificity. Light mode is untouched.
+
+   Built from a full audit of app_styles.css: (1) the design
+   tokens are remapped to a deep slate-navy theme - anything
+   using var(--token) flips automatically; (2) a curated set of
+   hardcoded colors that bypass the tokens are overridden below.
+   ============================================================ */
+
+html[data-theme="dark"] {
+    color-scheme: dark;
+
+    /* base + surfaces (surfaces step UP in lightness for elevation) */
+    --bg:            #0E1726;
+    --bg-grad-top:   #0F1A2E;
+    --bg-grad-bot:   #0B1320;
+    --surface:       #16213A;
+    --surface-sunk:  #111B30;
+    --bg-elev:       #1B2942;
+    --surface-2:     #1A2640;
+
+    /* tables */
+    --header-tint:   #1C2C49;
+    --header-ink:    #CFE0F5;
+    --zebra:         #141F36;
+    --row-hover:     #203356;
+
+    /* borders */
+    --border:        #26334D;
+    --border-strong: #38496A;
+
+    /* text - subtle was #6B7C99, 3.78:1 on --surface (fails AA for the small
+       dates and captions it is used on); #8191AE is 5.02:1 and still reads as
+       the quietest of the three steps. #8C9CB8: 5.76:1 on the surface and
+       still 5.02:1 on the table-header tint. */
+    --text:          #E5EAF2;
+    --text-muted:    #9FB0C8;
+    --text-subtle:   #8C9CB8;
+
+    /* navy UI accent inverts to light steel-blue so it pops on dark */
+    /* #5B8DD9 measured 4.15:1 on the table-header tint it is used on as link
+       and heading ink; one step lighter clears AA on every dark surface. */
+    --navy:          #74A2E6;
+    --navy-hover:    #8DB4EE;
+    --navy-soft:     rgba(91, 141, 217, 0.14);
+    --navy-ring:     rgba(91, 141, 217, 0.40);
+    --brand:         #7BA6E8;     /* document numbers in the lists (was 3.87:1) */
+
+    /* status accents - brightened to stay rich on dark */
+    --success:       #2DD4A7;
+    --success-hover: #3FE0B5;
+    --success-soft:  rgba(45, 212, 167, 0.16);
+    --danger:        #F2645A;
+    --danger-hover:  #FF7A70;
+    --danger-soft:   rgba(242, 100, 90, 0.16);
+    --warn:          #E0A23C;
+    --warn-soft:     rgba(224, 162, 60, 0.16);
+    --success-ink:   #6EE7B7;
+
+    /* Filled primary action (2026-10-09). --navy is a LIGHT steel-blue here,
+       so anything that filled with --navy and wrote white on it measured
+       3.36:1. Filled controls use this instead: white on it is 5.64:1, and it
+       is calm enough not to glare on the dark surface. */
+    --accent-fill:       #2F63C6;
+    --accent-fill-hover: #3A6FD2;
+    --on-accent:         #FFFFFF;
+
+    /* Tokens the stylesheet reads but never defines - their LIGHT fallbacks
+       (#f7f9fc, #eef2f8...) were painting white panels into dark mode: the
+       Document Records sidebar and the settings popup footer among them. */
+    --bg-subtle:     var(--surface-sunk);
+    --navy-tint:     color-mix(in srgb, #5B8DD9 16%, var(--surface));
+    --surface-hover: var(--row-hover);
+    --border-soft:   var(--border);
+    --muted:         var(--text-muted);
+    --teal:          #5EEAD4;
+
+    /* deeper, near-black shadows (slate shadows vanish on dark) */
+    --shadow-xs:    0 1px 2px rgba(0, 0, 0, 0.40);
+    --shadow-sm:    0 1px 3px rgba(0, 0, 0, 0.50), 0 1px 2px rgba(0, 0, 0, 0.40);
+    --shadow-md:    0 4px 16px rgba(0, 0, 0, 0.55);
+    --shadow-modal: 0 24px 60px rgba(0, 0, 0, 0.70), 0 4px 12px rgba(0, 0, 0, 0.50);
+}
+
+/* ---- form controls render dark (native inputs/scrollbars) ---- */
+html[data-theme="dark"] input,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] select { color-scheme: dark; }
+
+/* ============================================================
+   Hardcoded surfaces that bypass tokens → route to tokens.
+   (Bare #fff / #fafbfc / etc. backgrounds that would glare white.)
+   ============================================================ */
+html[data-theme="dark"] .glass,
+html[data-theme="dark"] #ltrBody,
+html[data-theme="dark"] .ltr-section,
+html[data-theme="dark"] .ltr-cols-editor,
+html[data-theme="dark"] .ltr-note-row input,
+html[data-theme="dark"] .ltr-sig-card input,
+html[data-theme="dark"] #invBank,
+html[data-theme="dark"] .dash-na-card,
+html[data-theme="dark"] .cl-search-wrap,
+html[data-theme="dark"] .cl-stat,
+html[data-theme="dark"] .cl-info-card,
+html[data-theme="dark"] .dm-cl-toolbar,
+html[data-theme="dark"] .dm-card,
+html[data-theme="dark"] .dm-toolbar,
+html[data-theme="dark"] .dm-dup-cluster,
+html[data-theme="dark"] .sig-slot {
+    background: var(--surface);
+}
+html[data-theme="dark"] .dash-profile-button,
+html[data-theme="dark"] .dash-profile-menu {
+    background: var(--surface);
+    border-color: var(--border);
+}
+html[data-theme="dark"] .dash-profile-logo-wrap {
+    background: #F8FAFC;
+    border-color: var(--border-strong);
+}
+html[data-theme="dark"] .dash-profile-option:hover,
+html[data-theme="dark"] .dash-profile-option:focus-visible {
+    background: var(--row-hover);
+}
+html[data-theme="dark"] .ltr-sig-card,
+html[data-theme="dark"] .dash-hb-track,
+html[data-theme="dark"] .import-list,
+html[data-theme="dark"] .in-span,
+html[data-theme="dark"] .in-table th .in-rank,
+html[data-theme="dark"] .in-pill {
+    background: var(--surface-sunk);
+}
+html[data-theme="dark"] .imprev-table thead th,
+html[data-theme="dark"] .inv-edit-table tfoot,
+html[data-theme="dark"] .dm-dup-table th,
+html[data-theme="dark"] .dm-table thead th,
+html[data-theme="dark"] .bulk-grid thead th {
+    background: var(--header-tint);
+}
+html[data-theme="dark"] .import-row:hover { background: var(--row-hover); }
+
+/* ---- advanced settings card gradient + border ---- */
+html[data-theme="dark"] .settings-card.advanced {
+    background: linear-gradient(180deg, var(--bg-elev), var(--surface));
+    border-color: var(--border);
+}
+
+/* ============================================================
+   Accent text hardcoded as navy ink → use the (flipped) navy token.
+   ============================================================ */
+html[data-theme="dark"] .inv-tax-status,
+html[data-theme="dark"] .inv-total-amt,
+html[data-theme="dark"] .ds-section h3 { color: var(--navy); }
+html[data-theme="dark"] .ds-check { accent-color: var(--navy); }
+
+/* ============================================================
+   color-mix(...white...) tint chips → tint the dark surface instead
+   (white endpoint becomes a near-white blob on dark).
+   ============================================================ */
+html[data-theme="dark"] .dash-card-icon,
+html[data-theme="dark"] .dash-recent-icon,
+html[data-theme="dark"] .cl-li-avatar,
+html[data-theme="dark"] .dm-cl-avatar {
+    background: color-mix(in srgb, var(--card-accent, var(--navy)) 26%, transparent);
+}
+/* needs-attention kind icon tints */
+html[data-theme="dark"] .dash-na-icon {
+    background: color-mix(in srgb, var(--navy) 26%, transparent);
+}
+
+/* ============================================================
+   Status chips / badges / warning strips (light tints + dark text).
+   ============================================================ */
+html[data-theme="dark"] .sign-chip.not-signed,
+html[data-theme="dark"] .sign-badge.not-signed {
+    background: #222B3A; color: #9FB0C8; border-color: #38496A;
+}
+html[data-theme="dark"] .sign-chip.is-signed,
+html[data-theme="dark"] .sign-badge.is-signed {
+    background: color-mix(in srgb, var(--success) 18%, transparent);
+    color: var(--success);
+}
+/* DN client-signature pill - red vs (near-)white on dark, never red/green.
+   On a dark surface "black" reads as a light neutral; the contrast against the
+   red state is what matters, and the label carries the meaning regardless. */
+html[data-theme="dark"] .client-sign-pill.is-signed {
+    background: #2A313D; color: #E8ECF3; border-color: #46505F;
+}
+html[data-theme="dark"] .client-sign-pill.not-signed {
+    background: color-mix(in srgb, #DC2626 20%, transparent);
+    color: #FCA5A5;
+    border-color: color-mix(in srgb, #DC2626 45%, transparent);
+}
+/* Per-line cost currency chip - same teal lift as the cards below. */
+html[data-theme="dark"] .cost-ccy {
+    color: #5EEAD4;
+    background: color-mix(in srgb, #2DD4BF 14%, transparent);
+    border-color: color-mix(in srgb, #2DD4BF 34%, transparent);
+}
+html[data-theme="dark"] .cost-ccy:hover,
+html[data-theme="dark"] .cost-ccy[data-ccy="IQD"] {
+    background: color-mix(in srgb, #2DD4BF 26%, transparent);
+}
+
+/* Live cost/sell/profit cards - #0f766e is unreadable on a dark surface, so
+   lift the private-cost teal to the same #2DD4BF the cost switch uses. The
+   loss red lifts too. Profit stays neutral: never red/green. */
+html[data-theme="dark"] .econ-card {
+    border-color: color-mix(in srgb, #2DD4BF 26%, transparent);
+    background: color-mix(in srgb, #2DD4BF 8%, transparent);
+}
+html[data-theme="dark"] .econ-k { color: #5EEAD4; }
+html[data-theme="dark"] .econ-card.is-loss {
+    border-color: color-mix(in srgb, #F87171 42%, transparent);
+    background: color-mix(in srgb, #F87171 10%, transparent);
+}
+html[data-theme="dark"] .econ-card.is-loss .econ-k,
+html[data-theme="dark"] .econ-card.is-loss .econ-v { color: #FCA5A5; }
+html[data-theme="dark"] .econ-warn {
+    color: #FCD34D;
+    background: color-mix(in srgb, #FBBF24 14%, transparent);
+    border-color: color-mix(in srgb, #FBBF24 42%, transparent);
+}
+
+/* Unsaved-duplicate row - #D97706 is too dark to read on the sunk dark
+   surface, so lift the accent. The dashed edge and the wording do the work;
+   this only keeps the amber legible. */
+html[data-theme="dark"] .po-row.is-pending,
+html[data-theme="dark"] .pending-pill {
+    --pending-accent: #FBBF24;
+}
+/* The open-document row in the right panel (2026-10-01). --navy is a LIGHT
+   steel-blue on dark, so the light-mode 20% mix lands as a pale wash on a dark
+   surface and reads weaker than it does in light mode. Deepen the tint, keep
+   the rail and the ring, and let the text stay bright. Measured by eye against
+   the zebra and hover steps in this file, which is what it has to beat. */
+html[data-theme="dark"] .op-pane .po-row.is-open {
+    background: color-mix(in srgb, var(--navy) 28%, var(--surface));
+    box-shadow: inset 4px 0 0 var(--navy),
+                inset 0 0 0 1px color-mix(in srgb, var(--navy) 55%, transparent);
+}
+html[data-theme="dark"] .op-pane .po-row.is-open:hover {
+    background: color-mix(in srgb, var(--navy) 36%, var(--surface));
+}
+[dir="rtl"] html[data-theme="dark"] .op-pane .po-row.is-open,
+html[data-theme="dark"] [dir="rtl"] .op-pane .po-row.is-open {
+    box-shadow: inset -4px 0 0 var(--navy),
+                inset 0 0 0 1px color-mix(in srgb, var(--navy) 55%, transparent);
+}
+/* The pill is white-on-navy in light mode; on dark, --navy is light, so white
+   text on it is unreadable. Flip the pill's ink to the dark surface. */
+html[data-theme="dark"] .op-pane .po-row.is-open .po-num::after {
+    color: var(--bg, #0E1726);
+}
+html[data-theme="dark"] .op-pane .po-row.is-open .po-num { color: #C7DBFF; }   /* 3.68:1 -> AA on the open-row tint */
+html[data-theme="dark"] .op-pane .po-row.is-open .panel-row-topmeta,
+html[data-theme="dark"] .op-pane .po-row.is-open .inv-row-topmeta,
+html[data-theme="dark"] .op-pane .po-row.is-open .panel-row-reference {
+    color: var(--text, #E5EAF2);
+}
+
+html[data-theme="dark"] .linked-pill {
+    background: color-mix(in srgb, #3B82F6 18%, transparent);
+    color: #93C5FD;
+    border-color: color-mix(in srgb, #3B82F6 42%, transparent);
+}
+html[data-theme="dark"] .paid-pill,
+html[data-theme="dark"] .paid-btn:not(.is-paid) {
+    background: color-mix(in srgb, #3B82F6 18%, transparent);
+    color: #BFDBFE;
+    border-color: color-mix(in srgb, #3B82F6 42%, transparent);
+}
+html[data-theme="dark"] .paid-btn:not(.is-paid):hover {
+    background: color-mix(in srgb, #3B82F6 25%, transparent);
+}
+html[data-theme="dark"] .paid-btn.is-paid {
+    background: #2563EB;
+    color: #fff;
+    border-color: #3B82F6;
+}
+html[data-theme="dark"] .dash-na-tag.stale,
+html[data-theme="dark"] .dash-na-age {
+    background: color-mix(in srgb, var(--warn) 20%, transparent); color: #F5C24B;
+}
+html[data-theme="dark"] .dash-na-tag.uncosted {
+    background: color-mix(in srgb, var(--danger) 20%, transparent); color: #FCA5A5;
+}
+html[data-theme="dark"] .dash-na-tag.na-tag-deliver {
+    background: color-mix(in srgb, #7C3AED 26%, transparent); color: #C4B5FD;
+}
+html[data-theme="dark"] .po-link-tabs,
+html[data-theme="dark"] .po-via-group-head {
+    background: color-mix(in srgb, #94A3B8 7%, var(--surface));
+}
+html[data-theme="dark"] .po-link-tabs button.is-active {
+    background: color-mix(in srgb, #FFFFFF 8%, var(--surface));
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.32);
+}
+html[data-theme="dark"] .po-link-section.is-suggested {
+    background: color-mix(in srgb, #7C3AED 13%, var(--surface));
+    border-color: color-mix(in srgb, #A78BFA 38%, var(--border));
+}
+html[data-theme="dark"] .po-link-section.is-suggested .po-link-section-head,
+html[data-theme="dark"] .po-link-reason { color: #C4B5FD; }
+html[data-theme="dark"] .po-link-reason {
+    background: color-mix(in srgb, #7C3AED 23%, transparent);
+}
+html[data-theme="dark"] .po-link-tag.is-route {
+    background: color-mix(in srgb, #3B82F6 20%, transparent);
+    color: #93C5FD;
+}
+html[data-theme="dark"] .po-via-ready {
+    background: color-mix(in srgb, #16A34A 22%, transparent);
+    color: #86EFAC;
+}
+html[data-theme="dark"] #dnLpoWarn.show,
+html[data-theme="dark"] #invLpoWarn.show {
+    background: color-mix(in srgb, var(--warn) 16%, transparent);
+    color: #F5C24B;
+    border-color: color-mix(in srgb, var(--warn) 38%, transparent);
+}
+html[data-theme="dark"] .ltr-note-row .del-btn { background: var(--surface); color: #FF6B6B; }
+
+/* ============================================================
+   Insights - the chart palette re-stepped for the DARK surface.
+   These are not an automatic lightening of the light values: each is
+   the same hue re-picked for the dark band and validated as a set
+   against this theme's --surface (#16213A):
+     node scripts/validate_palette.js "#3987e5,#d95926,#199e70,#c98500"           --mode dark --surface "#16213A"      -> all checks pass
+   Change one hue => re-run that, in BOTH modes.
+   ============================================================ */
+html[data-theme="dark"] .in-view {
+    --in-s1: #3987e5;
+    --in-s2: #d95926;
+    --in-s3: #199e70;
+    --in-s4: #c98500;
+    --in-s5: #9085e9;
+    --in-neg: #e66767;
+    --in-track: #1A2640;
+}
+html[data-theme="dark"] .in-period { background: var(--navy-soft); }
+html[data-theme="dark"] .in-sect::after { background: var(--border); }
+
+/* ============================================================
+   Subtle hover overlays that used dark-on-light tints → invert to
+   a faint light wash (they're invisible on a dark base otherwise).
+   ============================================================ */
+html[data-theme="dark"] .dm-table tbody tr:hover,
+html[data-theme="dark"] .cl-doc-row:hover,
+html[data-theme="dark"] .cl-li:hover { background: rgba(255, 255, 255, 0.05); }
+
+/* ============================================================
+   Dashboard canvas - the light orb gradient → a clean dark field.
+   The hero (its own saturated blue gradient) and the full-colour
+   Create-New cards already read correctly on dark, so leave them.
+   ============================================================ */
+html[data-theme="dark"] .dash-view {
+    background:
+        radial-gradient(900px 520px at 18% -8%, rgba(91, 141, 217, 0.10), transparent 60%),
+        radial-gradient(760px 520px at 100% 30%, rgba(45, 212, 167, 0.07), transparent 60%),
+        linear-gradient(180deg, #0F1A2E 0%, #0B1320 100%);
+}
+html[data-theme="dark"] .dash-bg { opacity: 0.5; }
+
+/* ============================================================
+   Overlays / scrims - deepen so dialogs separate from the dim page.
+   ============================================================ */
+html[data-theme="dark"] .modal-backdrop,
+html[data-theme="dark"] .modal-overlay,
+html[data-theme="dark"] .imprev-overlay { background: rgba(0, 0, 0, 0.62); }
+
+/* Images keep a clean light mat so logos/signatures stay legible. */
+html[data-theme="dark"] #set_logo_preview,
+html[data-theme="dark"] #sigStampPreview { background: #fff; }
+
+/* ============================================================
+   Lottie toolbar/topbar/quick-access icons bake a dark navy ink that
+   would vanish on dark. Their colours are static, so a scoped CSS
+   override recolours them to light instantly when the theme flips -
+   no separate icon files, no hot-swap. The white-on-colour CARD
+   icons live in .dash-lottie (not .licon-box) and are left alone.
+   ============================================================ */
+html[data-theme="dark"] .licon-box svg path,
+html[data-theme="dark"] .licon-box svg line,
+html[data-theme="dark"] .licon-box svg polyline,
+html[data-theme="dark"] .licon-box svg polygon,
+html[data-theme="dark"] .licon-box svg ellipse,
+html[data-theme="dark"] .licon-box svg circle,
+html[data-theme="dark"] .licon-box svg rect {
+    stroke: #E5EAF2 !important;
+}
+html[data-theme="dark"] .licon-box svg [fill]:not([fill="none"]) {
+    fill: #E5EAF2 !important;
+}
+
+/* The Costing view's dark rules lived here until 2026-09-11, when that screen
+   was retired. What follows - the workflow popup and the Client LPO chips -
+   was never part of it and only shared the block. */
+html[data-theme="dark"] .doc-workflow-modal { border: 1px solid var(--border); }
+html[data-theme="dark"] .doc-workflow-kind,
+html[data-theme="dark"] .doc-workflow-current { color: #93C5FD; }
+html[data-theme="dark"] .doc-workflow-node-icon,
+html[data-theme="dark"] .doc-workflow-stage-head > span { color: #93C5FD; }
+html[data-theme="dark"] .doc-workflow-invoice-links { background: rgba(37, 99, 235, 0.035); }
+html[data-theme="dark"] .doc-workflow-contribution,
+html[data-theme="dark"] .doc-workflow-add-dn { color: #93C5FD; }
+html[data-theme="dark"] .doc-workflow-add-dn:hover { color: #fff; }
+html[data-theme="dark"] button.doc-workflow-node:hover,
+html[data-theme="dark"] button.doc-workflow-empty:hover { color: #93C5FD; }
+html[data-theme="dark"] .doc-workflow-connector { color: #64748B; }
+
+/* Client LPOs (2026-07-31) - dark variants. Status text stays the signal;
+   the palette avoids red/green pairs entirely. */
+html[data-theme="dark"] .lpo-st-ack       { border-color: #d7dae0; color: #d7dae0; }
+html[data-theme="dark"] .lpo-st-delivered { border-color: #d7dae0; color: #d7dae0; background: rgba(215,218,224,.10); }
+html[data-theme="dark"] .lpo-st-invoiced  { border-color: #d7dae0; color: #14171c; background: #d7dae0; }
+html[data-theme="dark"] .lpo-st-nofile,
+html[data-theme="dark"] .lpo-st-over      { border-color: #ff6b5e; color: #ff6b5e; }
+html[data-theme="dark"] .lpo-v-canvas, html[data-theme="dark"] .lpo-v-img { box-shadow: 0 2px 18px rgba(0,0,0,.55); }
+html[data-theme="dark"] .lpo-mark-del { background: #d7dae0; color: #14171c; }
+html[data-theme="dark"] .lpo-mark-grip { background: #14171c; }
+
+/* ============================================================
+   Master Data - surfaces that referenced the light theme.
+   --------------------------------------------------------------------
+   The active condition chip inherits `.im-chip.active { color: #fff }`.
+   Against the dark-theme `--warn` (#E0A23C) that is 2.23:1 - unreadable.
+   Dark ink on the same amber is 7.16:1, and light mode is untouched
+   (white on #B45309 there measures 5.02:1).
+   ============================================================ */
+html[data-theme="dark"] .im-src,
+html[data-theme="dark"] .im-note,
+html[data-theme="dark"] .im-pill,
+html[data-theme="dark"] .im-d-note code { background: var(--surface-sunk); }
+html[data-theme="dark"] .im-count { background: var(--navy-soft); }
+
+/* dark.css is linked UNCONDITIONALLY and scopes everything under
+   html[data-theme="dark"]. Without that prefix this leaks into light
+   mode, where dark ink on the light --warn (#B45309) is 3.19:1 - worse
+   than the 5.02:1 white it replaced. */
+html[data-theme="dark"] .im-flagchip.active { color: #16213A; }
+html[data-theme="dark"] .im-flagchip.active em { opacity: .75; }
+
+/* The shared filter chips (Quotation, Invoice, DN and Client LPO lists) had no
+   dark variant: `.filter-chip` hardcodes a white background, so every inactive
+   chip glowed white on the dark page (found 2026-10-03 on the LPO tabs). The
+   active chip keeps its fill AND weight, so it reads without colour. */
+html[data-theme="dark"] .filter-chip {
+    background: var(--surface); color: var(--text-muted); border-color: var(--border-strong);
+}
+html[data-theme="dark"] .filter-chip:hover {
+    background: var(--surface-2); color: var(--text); border-color: var(--navy);
+}
+html[data-theme="dark"] .filter-chip.is-active {
+    background: var(--navy); color: #0B1320; border-color: var(--navy);
+}
+html[data-theme="dark"] .filter-chip .chip-count { background: rgba(255, 255, 255, 0.10); color: var(--text-muted); }
+html[data-theme="dark"] .filter-chip.is-active .chip-count { background: rgba(11, 19, 32, 0.22); color: #0B1320; }
+
+/* ============================================================
+   2026-10-09 DESIGN PASS - the rules below came out of a measured audit of
+   every screen in dark mode (contrast of each visible text run against what
+   is actually behind it, plus every light surface still showing). The rule
+   that governs all of it: a dark surface carries light ink, a light surface
+   carries dark ink, and no filled button is white or a pale pastel.
+   ============================================================ */
+
+/* ---- Filled controls that painted white text on --navy (a light blue in
+   this theme, 3.36:1). One calm blue fill for all of them, white ink. ---- */
+html[data-theme="dark"] button.navy,
+html[data-theme="dark"] button.editor-back-btn,
+html[data-theme="dark"] button.fitcols-btn.just-fitted,
+html[data-theme="dark"] button.autofit-toggle.active,
+html[data-theme="dark"] button.autofit-toggle[aria-pressed="true"],
+html[data-theme="dark"] button.prices-toggle.active,
+html[data-theme="dark"] button.prices-toggle[aria-pressed="true"],
+html[data-theme="dark"] button.doc-flow-btn.primary,
+html[data-theme="dark"] .row-insert-btn:hover,
+html[data-theme="dark"] .ac-item.active,
+html[data-theme="dark"] .panel-day-sep.is-today span,
+html[data-theme="dark"] .settings-nav-item.active,
+html[data-theme="dark"] .in-span button.active,
+html[data-theme="dark"] .import-row .import-type-chip,
+html[data-theme="dark"] .imprev-chip,
+html[data-theme="dark"] .qt-chip,
+html[data-theme="dark"] .dm-dup-cluster-head .link,
+html[data-theme="dark"] .imgf-fixgo,
+html[data-theme="dark"] .qc-head-find.is-busy,
+html[data-theme="dark"] .cl-tab.active span,
+html[data-theme="dark"] .qc-head-add,
+html[data-theme="dark"] .im-chip.active,
+html[data-theme="dark"] .im-btn-primary,
+html[data-theme="dark"] .im-ccy.active,
+html[data-theme="dark"] .lpo-v-switch button.is-on,
+html[data-theme="dark"] .filter-chip.is-active {
+    background: var(--accent-fill);
+    border-color: var(--accent-fill);
+    color: var(--on-accent);
+}
+html[data-theme="dark"] button.navy:hover:not(:disabled),
+html[data-theme="dark"] button.editor-back-btn:hover:not(:disabled),
+html[data-theme="dark"] button.autofit-toggle.active:hover:not(:disabled),
+html[data-theme="dark"] button.autofit-toggle[aria-pressed="true"]:hover:not(:disabled),
+html[data-theme="dark"] button.prices-toggle.active:hover:not(:disabled),
+html[data-theme="dark"] button.prices-toggle[aria-pressed="true"]:hover:not(:disabled),
+html[data-theme="dark"] button.doc-flow-btn.primary:hover:not(:disabled),
+html[data-theme="dark"] .im-btn-primary:hover,
+html[data-theme="dark"] .filter-chip.is-active:hover {
+    background: var(--accent-fill-hover);
+    border-color: var(--accent-fill-hover);
+    color: var(--on-accent);
+}
+html[data-theme="dark"] .filter-chip.is-active .chip-count { background: rgba(255, 255, 255, 0.20); color: var(--on-accent); }
+/* The amber condition chip in Master Data keeps its dark ink (rule above). */
+html[data-theme="dark"] .im-flagchip.active { background: var(--warn); border-color: var(--warn); }
+
+/* ---- Editor toolbar (New / Save / Import ...): #2563EB ink on the dark
+   surface was 3.1:1. Same blue family, lifted. ---- */
+html[data-theme="dark"] button.doc-flow-btn { --flow: #7AA7F7; }
+html[data-theme="dark"] button.doc-flow-btn:hover:not(:disabled) { color: #B4CDFB; }
+
+/* ---- Every form control gets a dark field by default. Zero specificity on
+   purpose: a component that already styles its own inputs still wins; this
+   only catches the bare select/input that fell back to the browser grey
+   (Settings > Document Layout, Payments, Signatures). ---- */
+:where(html[data-theme="dark"]) :where(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]):not([type="file"]),
+    select, textarea) {
+    background-color: var(--surface-sunk);
+    color: var(--text);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--r-sm);
+}
+:where(html[data-theme="dark"]) :where(input, textarea)::placeholder { color: var(--text-subtle); opacity: 1; }
+:where(html[data-theme="dark"]) :where(select) { padding: 6px 8px; }
+:where(html[data-theme="dark"]) :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus-visible {
+    outline: 2px solid var(--navy-ring);
+    outline-offset: 1px;
+    border-color: var(--navy);
+}
+html[data-theme="dark"] option { background: var(--surface); color: var(--text); }
+
+/* ---- Toast: success was white on the bright mint (1.89:1). ---- */
+html[data-theme="dark"] .toast.success { background: #0F766E; color: #fff; }
+
+/* ---- Dashboard: needs-attention + quick access ---------------------- */
+/* Kind icons used the deep document colour as INK on a tile that is now dark,
+   so each gets the light step of the same hue. */
+/* Light ink + dark tile of each document colour (app_styles :root --c-*).
+   Ink on its tile is 6.4:1 or better for all four. */
+html[data-theme="dark"] .dash-na-card[data-kind="quote"] .dash-na-icon {
+    color: #9DBDF1; background: #163367;
+}
+html[data-theme="dark"] .dash-na-card[data-kind="po"] .dash-na-icon {
+    color: #E4E49C; background: #474F36;
+}
+html[data-theme="dark"] .dash-na-card[data-kind="dn"] .dash-na-icon {
+    color: #9DF1EC; background: #175563;
+}
+html[data-theme="dark"] .dash-na-card[data-kind="inv"] .dash-na-icon {
+    color: #9DD3F1; background: #164167;
+}
+html[data-theme="dark"] .dash-na-tag.na-tag-decide      { color: #FCD34D; background: color-mix(in srgb, #F59E0B 18%, var(--surface)); }
+html[data-theme="dark"] .dash-na-tag.na-tag-decide.is-urgent { color: #FCA5A5; background: color-mix(in srgb, #EF4444 18%, var(--surface)); }
+html[data-theme="dark"] .dash-na-tag.na-tag-uncosted    { color: #FCA5A5; background: color-mix(in srgb, #EF4444 18%, var(--surface)); }
+html[data-theme="dark"] .dash-na-tag.na-tag-unsubmitted { color: #93C5FD; background: color-mix(in srgb, #3B82F6 20%, var(--surface)); }
+html[data-theme="dark"] .dash-na-tag.na-tag-unpaid      { color: #67E8F9; background: color-mix(in srgb, #06B6D4 18%, var(--surface)); }
+html[data-theme="dark"] .dash-na-age.is-urgent { color: #FCA5A5; }
+html[data-theme="dark"] .dash-na-btn.is-lost,
+html[data-theme="dark"] .todo-act.is-lost {
+    background: transparent; color: #FCA5A5;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, #F87171 50%, transparent);
+}
+html[data-theme="dark"] .dash-na-btn.is-lost:hover,
+html[data-theme="dark"] .todo-act.is-lost:hover { background: color-mix(in srgb, #F87171 12%, transparent); }
+html[data-theme="dark"] .todo-act.is-skip,
+html[data-theme="dark"] .todo-act.is-back { background: transparent; color: var(--text-muted); }
+/* Quick access tiles: the Lottie glyph is recoloured light above, so its tile
+   must be a DARK tint of the card accent - it was a pale chip and the light
+   glyph vanished into it. */
+html[data-theme="dark"] .dash-view .dash-bottom .dash-card-icon,
+html[data-theme="dark"] .dash-card-icon,
+html[data-theme="dark"] .dash-recent-icon {
+    background: color-mix(in srgb, var(--card-accent, var(--navy)) 34%, var(--surface));
+}
+html[data-theme="dark"] .dash-view .dash-row.cols-4 .dash-card-icon { background: transparent; }
+/* One light ink per quick-access tile, a step of its own accent. */
+html[data-theme="dark"] .dash-card-autofill { --qa-ink: #9DBDF1; }
+html[data-theme="dark"] .dash-card-lpos     { --qa-ink: #9DD3F1; }
+/* The navy Quotations card is within 1.2:1 of the dark page, so in this theme
+   it alone gets a visible edge; the other three stand off the page by hue. */
+html[data-theme="dark"] .dash-view .dash-row.cols-4 .dash-card[data-doc="quote"] {
+    border-color: #4A6CAF;
+}
+
+/* ---- To-Do tables (2026-10-21) ---------------------------------------- */
+/* Everything else on that screen is tokens; only the fixed reds need a
+   light step here. */
+html[data-theme="dark"] .todo-act.is-ignore:hover { color: #FCA5A5; }
+/* each type's light step: the accent and the ink that sits on its tint */
+html[data-theme="dark"] .todo-sec, html[data-theme="dark"] .todo-kpi { --tc: #94A3B8; --tc-ink: #CBD5E1; }
+html[data-theme="dark"] [data-sec="decide"],      html[data-theme="dark"] .todo-kpi[data-jump="decide"]      { --tc: #F59E0B; --tc-ink: #FCD34D; }
+html[data-theme="dark"] [data-sec="billing"],     html[data-theme="dark"] .todo-kpi[data-jump="billing"]     { --tc: #14B8A6; --tc-ink: #5EEAD4; }
+html[data-theme="dark"] [data-sec="deliver"],     html[data-theme="dark"] .todo-kpi[data-jump="deliver"]     { --tc: #8B5CF6; --tc-ink: #C4B5FD; }
+html[data-theme="dark"] [data-sec="unsubmitted"], html[data-theme="dark"] .todo-kpi[data-jump="unsubmitted"] { --tc: #3B82F6; --tc-ink: #93C5FD; }
+html[data-theme="dark"] [data-sec="uncosted"],    html[data-theme="dark"] .todo-kpi[data-jump="uncosted"]    { --tc: #EF4444; --tc-ink: #FCA5A5; }
+html[data-theme="dark"] [data-sec="unpaid"],      html[data-theme="dark"] .todo-kpi[data-jump="unpaid"]      { --tc: #06B6D4; --tc-ink: #67E8F9; }
+html[data-theme="dark"] .todo-sec, html[data-theme="dark"] .todo-kpi { --tc-soft: color-mix(in srgb, var(--tc) 20%, var(--surface)); }
+html[data-theme="dark"] .todo-act.is-main:hover { color: #0B1220; }
+/* the document-kind badges: the light ink + dark tile the dashboard uses */
+html[data-theme="dark"] .todo-kind.k-quote { color: #9DBDF1; background: #163367; }
+html[data-theme="dark"] .todo-kind.k-po    { color: #E4E49C; background: #474F36; }
+html[data-theme="dark"] .todo-kind.k-dn    { color: #9DF1EC; background: #175563; }
+html[data-theme="dark"] .todo-kind.k-inv   { color: #9DD3F1; background: #164167; }
+html[data-theme="dark"] .todo-kind.k-lpo   { color: #5EEAD4; background: color-mix(in srgb, #14B8A6 22%, var(--surface)); }
+html[data-theme="dark"] .todo-age.is-aging { color: #FCD34D; background: color-mix(in srgb, #F59E0B 18%, var(--surface)); }
+html[data-theme="dark"] .todo-age.is-late,
+html[data-theme="dark"] .in-table td.todo-late .todo-age { color: #FCA5A5; background: color-mix(in srgb, #EF4444 18%, var(--surface)); }
+html[data-theme="dark"] .todo-kpi-flag { color: #FCA5A5; background: color-mix(in srgb, #EF4444 16%, var(--surface)); border-color: color-mix(in srgb, #F87171 35%, transparent); }
+
+/* ---- Pills and tags that kept deep light-mode ink -------------------- */
+html[data-theme="dark"] .fulfill-pill.is-delivered,
+html[data-theme="dark"] .po-link-tag {
+    color: #6EE7B7; background: color-mix(in srgb, #10B981 16%, var(--surface));
+    border-color: color-mix(in srgb, #10B981 40%, transparent);
+}
+html[data-theme="dark"] .fulfill-pill.is-invoiced {
+    color: #93C5FD; background: color-mix(in srgb, #3B82F6 18%, var(--surface));
+    border-color: color-mix(in srgb, #3B82F6 42%, transparent);
+}
+html[data-theme="dark"] .fulfill-pill.is-paid {
+    color: #67E8F9; background: color-mix(in srgb, #06B6D4 16%, var(--surface));
+    border-color: color-mix(in srgb, #06B6D4 40%, transparent);
+}
+html[data-theme="dark"] .po-link-done { color: var(--text-muted); }
+html[data-theme="dark"] .incomplete-price-pill {
+    color: #FCD34D; background: color-mix(in srgb, #F59E0B 16%, var(--surface));
+    border-color: color-mix(in srgb, #F59E0B 45%, transparent);
+}
+html[data-theme="dark"] .submit-btn { color: #C4B5FD; border-color: color-mix(in srgb, #A78BFA 50%, transparent); }
+html[data-theme="dark"] .submit-btn:hover { background: color-mix(in srgb, #8B5CF6 16%, var(--surface)); }
+
+/* ---- Small controls ------------------------------------------------- */
+html[data-theme="dark"] .submit-btn.is-submitted { color: #fff; }
+html[data-theme="dark"] .filter-chip.is-active .chip-count { background: rgba(0, 0, 0, 0.24); color: #fff; }
+html[data-theme="dark"] .type-rail-item.active .type-rail-label { color: var(--text); }
+html[data-theme="dark"] button.link.danger-text,
+html[data-theme="dark"] .danger-text { color: #F87171; }
+html[data-theme="dark"] .dn-slider { background: var(--border-strong); }
+html[data-theme="dark"] .ds-bank-head .del-btn,
+html[data-theme="dark"] .ds-col-row .del-btn { color: #FCA5A5; }
+html[data-theme="dark"] .type-rail-item.active { color: var(--text); }
+
+/* ---- Item review popup + Master Data doctor: warning rows and text kept
+   their light-mode cream and rust ink. ---- */
+html[data-theme="dark"] .irp-row.has-errors > td { background: color-mix(in srgb, #F59E0B 10%, var(--surface)); }
+html[data-theme="dark"] .irp-field-error { color: #FDBA74; }
+html[data-theme="dark"] .irp-input[aria-invalid="true"],
+html[data-theme="dark"] .irp-money input[aria-invalid="true"],
+html[data-theme="dark"] .irp-candidates[aria-invalid="true"] { border-color: #FB923C; }
+html[data-theme="dark"] .mdoc-warn {
+    background: color-mix(in srgb, #F59E0B 12%, var(--surface));
+    color: #FED7AA; border-inline-start-color: #FB923C;
+}
+
+/* ---- Home: a near-black squircle reads as a hole in a dark header. Same
+   shape and size, raised one step instead, with a hairline edge. ---- */
+html[data-theme="dark"] .home-btn {
+    background: var(--bg-elev);
+    color: var(--text);
+    box-shadow: inset 0 0 0 1px var(--border-strong), 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+html[data-theme="dark"] .home-btn:hover {
+    background: var(--surface-2);
+    box-shadow: inset 0 0 0 1px var(--navy), 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+
+/* ---- Document Records sidebar: each family's accent is a deep document
+   colour (static/data_manager.js GROUP_ACCENT), which disappears on the dark
+   panel as a dot and as the selected row's fill. Lift both a step. ---- */
+html[data-theme="dark"] .dm-grp-dot {
+    background: color-mix(in srgb, var(--accent, #64748b) 45%, #fff);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #64748b) 35%, transparent);
+}
+html[data-theme="dark"] .dm-section-btn.active {
+    background: color-mix(in srgb, var(--accent, #2F63C6) 70%, #fff 8%);
+    border-color: color-mix(in srgb, var(--accent, #2F63C6) 40%, #fff);
+}

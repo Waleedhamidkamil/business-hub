@@ -1,0 +1,116 @@
+{% import "eshraqat/_components.html" as esh with context %}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>{{ document_no }}</title>
+{% if inline_css %}<style>{{ css_text|safe }}</style>{% else %}<link rel="stylesheet" href="{{ css_href }}">{% endif %}
+<style>
+/* Column widths - deliberately the SAME reference percentages as the Abraj PO
+   (po_styles.css), so a PO printed under either company has identical column
+   proportions. RTL source order: ت (rightmost) … السعر (leftmost). */
+.items-table .col-idx { width: 4.7%; }
+.items-table .col-name { width: 23.9%; }
+.items-table .col-desc { width: 20%; }
+.items-table .col-unit { width: 10.2%; }
+.items-table .col-qty { width: 8%; }
+.items-table .col-company { width: 16.7%; }
+.items-table .col-price { width: 16.6%; }
+
+/* Optional picture column, mirroring po_styles.css: present only when some row
+   carries an image, and the other columns narrow here (not in the width scaler)
+   so the table still sums to 100%. 4.7+20+11+17+9+7+14.7+16.6 = 100. */
+.items-table .col-image { width: 11%; }
+.items-table.has-images .col-name { width: 20%; }
+.items-table.has-images .col-desc { width: 17%; }
+.items-table.has-images .col-unit { width: 9%; }
+.items-table.has-images .col-qty { width: 7%; }
+.items-table.has-images .col-company { width: 14.7%; }
+</style>
+{% if col_style %}<style>{{ col_style|safe }}</style>{% endif %}
+{# The picture cap. MUST match what pdf_generator reserves per image row
+   (PO_IMAGE_ROW_MIN_MM): the estimate books the space, this is what actually
+   stops the image growing past it. Change one, change both. Same contract as
+   the Abraj skin in templates/po_page.html. #}
+<style>.esh-po-document { --po-img-mm: {{ pages[0].image_row_mm if pages else 22 }}mm; }</style>
+</head>
+<body class="esh-document esh-po-document rtl">
+{% for page in pages %}
+<section class="esh-page esh-po-page{% if not loop.last %} page-break{% endif %}"
+         data-page-role="{{ 'single' if page.total_pages == 1 else ('first' if page.show_header else ('last' if page.is_last else 'continuation')) }}">
+    {# 2026-08-09 - the PO skin is Arabic + RTL (the only Eshraqat document that
+       is). Header + meta on page 1 only, closing zone on the last page only;
+       there is NO footer band on any page - the page number is all that sits at
+       the bottom. #}
+    {% if page.show_header %}
+    {{ esh.header_ar(document_title) }}
+
+    {% if source_quote_no %}
+        {{ esh.meta_grid([
+            {"label": "التاريخ", "value": po_date},
+            {"label": "رقم طلب الشراء", "value": page.po_no},
+            {"label": "رقم عرض السعر", "value": source_quote_no}
+        ]) }}
+    {% else %}
+        {{ esh.meta_grid([
+            {"label": "التاريخ", "value": po_date},
+            {"label": "رقم طلب الشراء", "value": page.po_no}
+        ]) }}
+    {% endif %}
+    {% endif %}
+
+    {# RTL table: the first column renders RIGHTMOST.
+       ت (right) -> المادة -> الوصف -> الوحدة -> العدد -> الشركة -> [صورة] -> السعر (left).
+       صورة sits between الشركة and السعر - the same slot as the Abraj PO - and
+       only when at least one row on the document carries a picture. #}
+    <table class="esh-table items-table{% if autofit %} esh-table--autofit items-table--autofit{% endif %}{% if page.has_images %} has-images{% endif %}"
+           style="--esh-row-mm: {{ table_row_mm }}mm;">
+        <thead>
+            <tr>
+                <th class="col-idx al-center">ت</th>
+                <th class="col-name al-right">المادة</th>
+                <th class="col-desc al-right">الوصف</th>
+                <th class="col-unit al-center">الوحدة</th>
+                <th class="col-qty al-center">العدد</th>
+                <th class="col-company al-right">الشركة</th>
+                {% if page.has_images %}<th class="col-image al-center">صورة</th>{% endif %}
+                <th class="col-price al-center">السعر</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in page.rows %}
+            <tr>
+                <td class="col-idx al-center">{{ row.index }}</td>
+                <td class="col-name al-right">{{ row.name or "" }}</td>
+                <td class="col-desc al-right">{{ row.description or "" }}</td>
+                <td class="col-unit al-center">{{ row.unit or "" }}</td>
+                <td class="col-qty al-center">{{ row.qty or "" }}</td>
+                <td class="col-company al-right">{{ row.company or row.supplier or "" }}</td>
+                {% if page.has_images %}<td class="col-image al-center">{% if row.image %}<img src="{{ row.image }}" alt="">{% endif %}</td>{% endif %}
+                <td class="col-price al-center"></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if page.is_last %}
+    <div class="esh-closing-zone">
+        <div class="esh-terms-signing">
+            <div class="esh-terms">
+                <div class="esh-closing-label">الشركة المجهزة</div>
+                <strong>{{ supplier_name }}</strong>
+            </div>
+            <div class="esh-signature sig-box">
+                {{ sig_overlay_main|safe }}
+                <div class="esh-signature-space"></div>
+                <div class="esh-signature-line"></div>
+                <strong>التوقيع المعتمد</strong>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {{ esh.page_number_ar(page.page_index, page.total_pages) }}
+</section>
+{% endfor %}
+</body>
+</html>

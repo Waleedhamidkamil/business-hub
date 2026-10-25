@@ -1,0 +1,685 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Client LPO Concepts</title>
+<style>
+/* A proposal sheet, not the app. Three directions for the Client LPOs screen, each
+   drawn with the 8 real Abraj LPOs as they stood on 3 Oct 2026, then the features
+   and a recommendation. Uses the app's own tokens (Roboto, slate, navy) so the
+   mockups read as Business Hub. Status is ALWAYS a word plus a shape, never a
+   colour alone: Waleed is colour blind, and red/green are not used anywhere. */
+@font-face { font-family: Roboto; src: url("../../static/fonts/Roboto-VariableFont.ttf"); font-weight: 100 900; }
+:root {
+  --bg: #F3F5F8; --surface: #FFFFFF; --sunk: #F1F4F8; --line: #E1E6ED; --line-strong: #CBD2D9;
+  --text: #0F172A; --muted: #526073; --subtle: #8A97A8;
+  --navy: #1E3A5F; --navy-soft: rgba(30, 58, 95, 0.08); --brand: #1F3864;
+  --amber: #A15C07; --amber-soft: #FFF4DB; --amber-line: #E8B65A;
+  --grey-block: #E7ECF2;
+  --font: Roboto, "Segoe UI", system-ui, sans-serif;
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --shadow: 0 1px 2px rgba(15, 23, 42, .04), 0 6px 24px rgba(15, 23, 42, .05);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0D131C; --surface: #151D29; --sunk: #111823; --line: #263244; --line-strong: #34445C;
+  --text: #E7ECF3; --muted: #A3B1C3; --subtle: #7D8CA0; --navy: #BCD0EA; --navy-soft: rgba(188, 208, 234, .10);
+  --brand: #BCD0EA; --amber: #F2C26B; --amber-soft: #3A2E17; --amber-line: #A07A2E; --grey-block: #222D3D;
+  --shadow: none; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0D131C; --surface: #151D29; --sunk: #111823; --line: #263244; --line-strong: #34445C;
+  --text: #E7ECF3; --muted: #A3B1C3; --subtle: #7D8CA0; --navy: #BCD0EA; --navy-soft: rgba(188, 208, 234, .10);
+  --brand: #BCD0EA; --amber: #F2C26B; --amber-soft: #3A2E17; --amber-line: #A07A2E; --grey-block: #222D3D;
+  --shadow: none; color-scheme: dark }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--text); font: 14px/1.5 var(--font); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 28px 20px 72px; display: grid; gap: 28px; }
+h1 { font-size: 28px; line-height: 1.2; margin: 0; letter-spacing: -.015em; }
+h2 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
+h3 { font-size: 12px; margin: 0; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+p { margin: 0; }
+.lede { color: var(--muted); max-width: 78ch; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* sheet controls */
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; position: sticky; top: 0; z-index: 10; box-shadow: var(--shadow); }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.seg button { border: 0; background: transparent; padding: 8px 14px; font-weight: 500; font-size: 13px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--text); color: var(--surface); }
+.bar .spacer { flex: 1; }
+.ghost { border: 1px solid var(--line); background: transparent; border-radius: 8px; padding: 7px 12px; font-size: 13px; font-weight: 500; }
+
+/* concept intro */
+.intro { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+.intro > div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 4px; align-content: start; }
+.intro b { font-size: 13px; }
+.intro span { color: var(--muted); font-size: 13px; }
+@media (max-width: 860px) { .intro { grid-template-columns: 1fr; } }
+
+/* app frame */
+.frame { background: var(--bg); border: 1px solid var(--line-strong); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+.chrome { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--surface); border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.chrome i { width: 10px; height: 10px; border-radius: 50%; background: var(--line-strong); display: inline-block; }
+.chrome .t { margin-left: 8px; }
+.screen { padding: 18px; display: grid; gap: 14px; min-height: 560px; }
+.appbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.appbar h4 { margin: 0; font-size: 19px; letter-spacing: -.01em; }
+.count { font-size: 12px; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; color: var(--muted); }
+.search { flex: 1; min-width: 180px; max-width: 360px; display: flex; align-items: center; gap: 8px; border: 1px solid var(--line);
+  background: var(--surface); border-radius: 8px; padding: 7px 10px; color: var(--subtle); font-size: 13px; }
+.search kbd { margin-left: auto; font: 11px var(--font); border: 1px solid var(--line); border-radius: 4px; padding: 0 5px; color: var(--muted); }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 7px; padding: 7px 12px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+.btn.primary { background: var(--navy); border-color: var(--navy); color: var(--surface); }
+.btn.sm { padding: 4px 9px; font-size: 12px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+
+/* tags: shape + word */
+.tag { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase;
+  border: 1px solid var(--line-strong); border-radius: 5px; padding: 1px 7px; color: var(--muted); white-space: nowrap; }
+.tag svg { width: 11px; height: 11px; }
+.state { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.state::before { content: ""; width: 8px; height: 8px; border-radius: 2px; }
+.state.todo { color: var(--amber); } .state.todo::before { background: transparent; border: 2px solid var(--amber); transform: rotate(45deg); width: 7px; height: 7px; }
+.state.done { color: var(--navy); } .state.done::before { background: var(--navy); }
+.state.wait { color: var(--muted); } .state.wait::before { background: transparent; border: 1.5px dashed var(--subtle); }
+
+/* ---------- concept 1: today ---------- */
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.kpi small { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+.kpi b { font-size: 19px; display: block; margin-top: 2px; }
+.kpi span { font-size: 12px; color: var(--muted); }
+@media (max-width: 760px) { .kpis { grid-template-columns: 1fr 1fr; } }
+.queue { display: grid; gap: 8px; }
+.qhead { display: flex; align-items: baseline; gap: 10px; }
+.qhead p { color: var(--muted); font-size: 12px; }
+.qitem { display: grid; grid-template-columns: 34px 1fr auto auto; align-items: center; gap: 12px; padding: 10px 12px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 10px; transition: border-color 160ms var(--ease), transform 160ms var(--ease); }
+.qitem:hover { border-color: var(--line-strong); }
+.qitem .ico { width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: var(--navy-soft); color: var(--navy); }
+.qitem .ico.amber { background: var(--amber-soft); color: var(--amber); }
+.qitem .ico svg { width: 18px; height: 18px; }
+.qitem .what { display: grid; gap: 1px; min-width: 0; }
+.qitem .what b { font-size: 13.5px; }
+.qitem .what span { font-size: 12.5px; color: var(--muted); }
+.qitem .money { font-size: 13px; font-weight: 600; text-align: right; }
+.qitem .money small { display: block; font-weight: 400; color: var(--muted); font-size: 11px; }
+@media (max-width: 760px) { .qitem { grid-template-columns: 34px 1fr; } .qitem .money, .qitem .btn { grid-column: 2; justify-self: start; } }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 11px; font-size: 12.5px; color: var(--muted); }
+.chip[aria-pressed="true"] { border-color: var(--text); color: var(--text); font-weight: 600; }
+.chip em { font-style: normal; color: var(--subtle); margin-left: 4px; }
+.list { display: grid; }
+.lrow { display: grid; grid-template-columns: minmax(150px, 1.1fr) 120px minmax(220px, 1.6fr) 110px 24px; gap: 12px; align-items: center;
+  padding: 10px 14px; border-top: 1px solid var(--line); font-size: 13px; }
+.lrow:first-child { border-top: 0; }
+.lrow.closed { color: var(--subtle); }
+.lrow.closed .no { text-decoration: line-through; }
+.lrow .no { font-weight: 600; }
+.lrow .sub { display: block; font-size: 11.5px; color: var(--muted); font-weight: 400; }
+.lrow .amt { text-align: right; font-weight: 600; }
+.lrow .chev { color: var(--subtle); }
+@media (max-width: 860px) { .lrow { grid-template-columns: 1fr auto; } .lrow > :nth-child(2), .lrow .chev { display: none; } .lrow > :nth-child(3) { grid-column: 1 / -1; } }
+/* mini visuals inside a row: the SHAPE of the progress depends on the kind */
+.months { display: flex; gap: 3px; align-items: center; }
+.months i { width: 14px; height: 14px; border-radius: 3px; background: var(--grey-block); display: inline-block; }
+.months i.b { background: var(--navy); }
+.months i.t { background: repeating-linear-gradient(45deg, var(--amber-soft) 0 3px, transparent 3px 6px); border: 1.5px solid var(--amber); }
+.months i.e { background: var(--navy); opacity: .45; }
+.months span { margin-left: 8px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.pipe { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); }
+.pipe b { font-weight: 600; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line); }
+.pipe b.on { background: var(--navy); border-color: var(--navy); color: var(--surface); }
+.pipe b.next { border: 1.5px solid var(--amber); color: var(--amber); }
+.pipe s { text-decoration: none; color: var(--subtle); }
+
+/* ---------- concept 2: boards ---------- */
+.typetabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); }
+.typetabs button { border: 0; background: transparent; padding: 9px 14px; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.typetabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--text); font-weight: 600; }
+.typetabs em { font-style: normal; color: var(--subtle); margin-left: 4px; }
+.tl { padding: 30px 14px 10px; overflow-x: auto; }
+.tl-grid { min-width: 860px; display: grid; grid-template-columns: 190px 1fr; row-gap: 12px; }
+.tl-months { display: grid; grid-template-columns: repeat(10, 1fr); font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; position: relative; }
+.tl-months span { border-left: 1px solid var(--line); padding-left: 5px; }
+.tl-lab { display: grid; gap: 1px; align-content: center; font-size: 13px; padding-right: 12px; }
+.tl-lab b { font-size: 13px; }
+.tl-lab span { font-size: 11.5px; color: var(--muted); }
+.tl-track { position: relative; height: 40px; background: linear-gradient(90deg, var(--line) 1px, transparent 1px) 0 0 / 10% 100%; border-radius: 6px; }
+.blk { position: absolute; top: 5px; height: 30px; border-radius: 5px; font-size: 10.5px; line-height: 1.15; padding: 3px 6px; overflow: hidden; white-space: nowrap; display: grid; align-content: center; }
+.blk.b { background: var(--navy); color: var(--surface); }
+.blk.e { background: var(--navy); color: var(--surface); opacity: .55; outline: 1.5px dashed var(--surface); outline-offset: -4px; }
+.blk.t { background: repeating-linear-gradient(45deg, var(--amber-soft) 0 5px, var(--surface) 5px 10px); border: 1.5px solid var(--amber); color: var(--amber); font-weight: 600; }
+.blk.f { background: var(--grey-block); color: var(--muted); }
+.blk.open { background: linear-gradient(90deg, var(--grey-block), transparent); color: var(--muted); border: 1.5px dashed var(--line-strong); }
+.today { position: absolute; top: -18px; bottom: -6px; width: 0; border-left: 2px solid var(--text); z-index: 2; }
+.today::before { content: "Today 3 Oct"; position: absolute; top: -2px; left: 4px; font-size: 10.5px; font-weight: 600; white-space: nowrap; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); padding: 0 14px 14px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 22px; height: 12px; border-radius: 3px; display: inline-block; }
+.flag { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--amber); }
+.board-note { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 14px 14px; }
+.board-note .card { padding: 9px 12px; display: flex; gap: 10px; align-items: center; font-size: 12.5px; }
+
+.supply { padding: 14px; display: grid; gap: 12px; }
+.supply-head { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: baseline; }
+.supply-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.mon { border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: grid; gap: 6px; background: var(--surface); }
+.mon b { font-size: 13px; }
+.mon .state { font-size: 11.5px; }
+.mon .acts { display: grid; gap: 4px; }
+.mon.cur { border: 1.5px solid var(--text); }
+@media (max-width: 860px) { .supply-grid { grid-template-columns: repeat(3, 1fr); } }
+
+.kanban { padding: 14px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.col { background: var(--sunk); border-radius: 10px; padding: 8px; display: grid; gap: 8px; align-content: start; min-height: 260px; }
+.col h5 { margin: 2px 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); display: flex; justify-content: space-between; }
+.kc { background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 10px; display: grid; gap: 6px; font-size: 12.5px; }
+.kc b { font-size: 13px; }
+.kc .meta { color: var(--muted); }
+.bars { display: grid; gap: 3px; }
+.bars div { display: grid; grid-template-columns: 62px 1fr 40px; gap: 6px; align-items: center; font-size: 11px; color: var(--muted); }
+.bars u { height: 6px; border-radius: 3px; background: var(--grey-block); position: relative; text-decoration: none; overflow: hidden; }
+.bars u::after { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w); background: var(--navy); border-radius: 3px; }
+@media (max-width: 860px) { .kanban { grid-template-columns: 1fr 1fr; } }
+
+/* ---------- concept 3: workspace ---------- */
+.ws { display: grid; grid-template-columns: 270px 1fr; gap: 14px; align-items: start; }
+@media (max-width: 900px) { .ws { grid-template-columns: 1fr; } }
+.side { display: grid; gap: 4px; padding: 8px; }
+.side h6 { margin: 8px 6px 2px; font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.sitem { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 8px 9px; border-radius: 8px; border: 1px solid transparent; font-size: 12.5px; }
+.sitem b { font-size: 13px; }
+.sitem span { color: var(--muted); font-size: 11.5px; grid-column: 1 / -1; }
+.sitem.on { background: var(--navy-soft); border-color: var(--line-strong); }
+.sitem.closed b { text-decoration: line-through; color: var(--subtle); }
+.dot { width: 9px; height: 9px; transform: rotate(45deg); border: 2px solid var(--amber); align-self: center; }
+.main { display: grid; gap: 12px; }
+.whead { padding: 16px; display: grid; gap: 12px; }
+.wtitle { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.wtitle h4 { margin: 0; font-size: 22px; letter-spacing: -.015em; }
+.wtitle .acts { margin-left: auto; display: flex; gap: 8px; }
+.wsub { color: var(--muted); font-size: 13px; }
+.facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.fact { border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; }
+.fact small { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.fact b { font-size: 16px; display: block; }
+.fact span { font-size: 12px; color: var(--muted); }
+.meter { height: 6px; border-radius: 3px; background: var(--grey-block); margin-top: 6px; overflow: hidden; }
+.meter i { display: block; height: 100%; background: var(--navy); }
+@media (max-width: 760px) { .facts { grid-template-columns: 1fr 1fr; } }
+.wtabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); padding: 0 12px; }
+.wtabs button { border: 0; background: transparent; padding: 10px 12px; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.wtabs button[aria-selected="true"] { color: var(--text); border-bottom-color: var(--text); font-weight: 600; }
+.wbody { padding: 14px 16px 16px; display: grid; gap: 12px; }
+.banner { display: flex; gap: 10px; align-items: center; background: var(--amber-soft); border: 1px solid var(--amber-line); border-radius: 9px; padding: 9px 12px; font-size: 13px; }
+.banner .btn { margin-left: auto; }
+table.periods { width: 100%; border-collapse: collapse; font-size: 13px; }
+.periods th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.periods td { padding: 9px 8px; border-bottom: 1px solid var(--line); }
+.periods tr.next td { background: var(--navy-soft); }
+.periods .r { text-align: right; }
+.menu { position: relative; }
+.menu-pop { position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 30px rgba(15,23,42,.14);
+  padding: 6px; width: 210px; display: grid; z-index: 3; transform-origin: top right; transition: opacity 140ms var(--ease), transform 160ms var(--ease); }
+.menu-pop[hidden] { display: grid; opacity: 0; transform: scale(.96); pointer-events: none; }
+.menu-pop button { text-align: left; border: 0; background: transparent; padding: 7px 9px; border-radius: 6px; font-size: 13px; }
+.menu-pop button:hover { background: var(--sunk); }
+.menu-pop hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+
+/* notes beside each concept */
+.verdict { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.verdict > div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.verdict ul { margin: 0; padding-left: 18px; color: var(--muted); display: grid; gap: 3px; font-size: 13.5px; }
+.verdict b { font-size: 13px; }
+@media (max-width: 760px) { .verdict { grid-template-columns: 1fr; } }
+
+/* recommendation + features */
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 16px; }
+.flow { display: grid; grid-template-columns: 1fr 34px 1fr 34px 1fr; align-items: stretch; gap: 6px; }
+.flow > div.step { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 4px; align-content: start; background: var(--bg); }
+.flow .arrow { display: grid; place-items: center; color: var(--subtle); font-size: 20px; }
+.flow b { font-size: 14px; }
+.flow span { font-size: 13px; color: var(--muted); }
+@media (max-width: 860px) { .flow { grid-template-columns: 1fr; } .flow .arrow { transform: rotate(90deg); } }
+table.feat { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.feat th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line-strong); }
+.feat td { padding: 11px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.feat td:first-child { font-weight: 600; color: var(--muted); width: 32px; }
+.feat td b { display: block; }
+.feat td span { color: var(--muted); font-size: 13px; }
+.size { font-size: 11px; font-weight: 700; border: 1px solid var(--line-strong); border-radius: 4px; padding: 1px 6px; white-space: nowrap; }
+.feat .why { color: var(--text); }
+.feat-wrap { overflow-x: auto; }
+.qs { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
+[hidden] { display: none !important; }
+.concept { display: grid; gap: 14px; }
+.concept-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+.concept-title p { color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header style="display:grid;gap:8px">
+  <h3>Client LPOs - design proposal</h3>
+  <h1>Three ways to make the LPO screen the place you work from</h1>
+  <p class="lede">Every mockup below uses your real Abraj LPOs as they stand today, 3 October 2026: 4 rentals, 1 supply contract, 3 materials orders, all HDEC. Nothing here is wired to the app. Statuses always carry a word and a shape, never colour alone.</p>
+</header>
+
+<div class="intro">
+  <div><b>What the screen does today</b><span>A long list of 8 rows with a pill each, then a detail page where the PDF takes two thirds of the space and ten buttons share the rest.</span></div>
+  <div><b>What it should answer first</b><span>"What do I have to do on my LPOs today?" Right now that takes opening each one. Today the answer is 7 things, with $5,863.40 not yet billed plus 6 supply months nobody has counted.</span></div>
+  <div><b>Why the three types need different views</b><span>A rental is billed month by month, a supply contract has no total at all, and a materials order moves delivered then invoiced. One generic row hides all three.</span></div>
+</div>
+
+<div class="bar" role="toolbar" aria-label="Choose a concept">
+  <div class="seg" id="conceptSeg">
+    <button aria-pressed="true" data-c="1">1 · Today</button>
+    <button aria-pressed="false" data-c="2">2 · Type boards</button>
+    <button aria-pressed="false" data-c="3">3 · Workspace</button>
+    <button aria-pressed="false" data-c="all">Show all</button>
+  </div>
+  <span class="spacer"></span>
+  <button class="ghost" id="themeBtn" type="button">Dark mode</button>
+</div>
+
+<!-- =========================================================== CONCEPT 1 -->
+<section class="concept" data-concept="1">
+  <div class="concept-title"><h2>1 · Today: a "needs you" queue on top of the list</h2><p>Opens on what has to be done, ranked, each with the one button that does it.</p></div>
+  <div class="frame">
+    <div class="chrome"><i></i><i></i><i></i><span class="t">Business Hub · Client LPOs</span></div>
+    <div class="screen">
+      <div class="appbar">
+        <h4>Client LPOs</h4><span class="count">8 on file</span>
+        <div class="search">Search LPO, item, quotation, invoice <kbd>/</kbd></div>
+        <span style="flex:1"></span>
+        <button class="btn">Statement</button>
+        <button class="btn primary">+ Add LPO</button>
+      </div>
+      <div class="kpis">
+        <div class="kpi"><small>Ordered</small><b class="num">$78,892.80</b><span>7 priced LPOs</span></div>
+        <div class="kpi"><small>Not billed yet</small><b class="num">$5,863.40</b><span>+ 6 supply months uncounted</span></div>
+        <div class="kpi"><small>Running contracts</small><b class="num">4</b><span>3 rentals, 1 supply</span></div>
+        <div class="kpi"><small>Ending soon</small><b class="num">1</b><span>RENT-0005(3) on 11 Nov</span></div>
+      </div>
+
+      <div class="queue">
+        <div class="qhead"><h3>Needs you · 7</h3><p>Most money and oldest first. Done items drop off by themselves.</p></div>
+        <div class="qitem">
+          <div class="ico amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div>
+          <div class="what"><b>CSSP-OPEN-0001 · 6 months with no invoice</b><span>Supply contract (diesel, $0.77/L). May to October not billed. Bill them, or mark the months nothing was supplied.</span></div>
+          <div class="money num">6 months<small>value unknown</small></div>
+          <button class="btn primary sm">Review months</button>
+        </div>
+        <div class="qitem">
+          <div class="ico amber"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h10M4 17h7"/><path d="M17 15l3 3-3 3"/></svg></div>
+          <div class="what"><b>CSSP-RENT-0004 · September period not billed</b><span>Vehicle rental, period 24 Sep - 23 Oct. But its $15,600 value is already fully invoiced and no end date is recorded: bill the period, or record that it ended.</span></div>
+          <div class="money num">Decide<small>bill or end it</small></div>
+          <button class="btn primary sm">Bill September</button>
+        </div>
+        <div class="qitem">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/></svg></div>
+          <div class="what"><b>LPO CSSP-ADM-0033 · delivered, not invoiced</b><span>DN-HDEC-067 delivered both items on 28 Sep. Invoice opens with the delivered quantities.</span></div>
+          <div class="money num">$490.00</div>
+          <button class="btn primary sm">Create invoice</button>
+        </div>
+        <div class="qitem">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h11v10H3zM14 10h4l3 3v4h-7"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div>
+          <div class="what"><b>CSSP-ADM-0017 · nothing delivered after 71 days</b><span>12 office items ordered on 24 Jul. Delivery note opens with all 12 lines.</span></div>
+          <div class="money num">$273.40</div>
+          <button class="btn sm">Create delivery note</button>
+        </div>
+        <div class="qitem">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg></div>
+          <div class="what"><b>CSSP-RENT-0005(3) · ends 11 Nov, in 39 days</b><span>All 3 months billed. Ask HDEC for the next LPO; Renew copies the line and starts the new LPO on 12 Nov.</span></div>
+          <div class="money num">$1,700<small>per month</small></div>
+          <button class="btn sm">Renew</button>
+        </div>
+        <div class="qitem">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20c4-1 5-6 8-6s3 3 6 2"/><path d="M14 4l6 6-8 8H6v-6z"/></svg></div>
+          <div class="what"><b>7 LPOs have no signed copy saved here</b><span>They may have been signed outside the app. Sign and stamp, or mark "signed elsewhere" once.</span></div>
+          <div class="money"></div>
+          <button class="btn sm">Review 7</button>
+        </div>
+        <div class="qitem">
+          <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></div>
+          <div class="what"><b>15 invoices name an LPO that is not on file</b><span>Mostly TDC job references like "CAMP WATER". Link each to an LPO, or mark it "not an LPO".</span></div>
+          <div class="money"></div>
+          <button class="btn sm">Review 15</button>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between">
+        <h3>All LPOs</h3>
+        <div class="chips" data-chips>
+          <button class="chip" aria-pressed="true">All<em>8</em></button>
+          <button class="chip" aria-pressed="false">Rentals<em>4</em></button>
+          <button class="chip" aria-pressed="false">Supply<em>1</em></button>
+          <button class="chip" aria-pressed="false">Materials<em>3</em></button>
+          <button class="chip" aria-pressed="false">Show closed<em>2</em></button>
+        </div>
+      </div>
+      <div class="card list">
+        <div class="lrow"><div class="no">CSSP-RENT-0004<span class="sub">HDEC · CSSP · 24 Jul</span></div><div><span class="tag">Rental</span></div>
+          <div class="months"><i class="b"></i><i class="b"></i><i class="t"></i><span>2 billed · September to bill · no end date</span></div><div class="amt num">$15,600.00</div><div class="chev">›</div></div>
+        <div class="lrow"><div class="no">CSSP-RENT-0002<span class="sub">HDEC · 4 Jun</span></div><div><span class="tag">Rental</span></div>
+          <div class="months"><i class="e"></i><i class="e"></i><i class="e"></i><i class="e"></i><i></i><i></i><i></i><span>4 of 7 billed · dates estimated</span></div><div class="amt num">$11,900.00</div><div class="chev">›</div></div>
+        <div class="lrow"><div class="no">CSSP-RENT-0005(3)<span class="sub">HDEC · CSSP · 26 Aug</span></div><div><span class="tag">Rental</span></div>
+          <div class="months"><i class="b"></i><i class="b"></i><i class="b"></i><span>3 of 3 billed · ends 11 Nov</span></div><div class="amt num">$5,100.00</div><div class="chev">›</div></div>
+        <div class="lrow"><div class="no">CSSP-OPEN-0001<span class="sub">HDEC · 15 May</span></div><div><span class="tag">Supply</span></div>
+          <div class="months"><i class="t"></i><i class="t"></i><i class="t"></i><i class="t"></i><i class="t"></i><i class="t"></i><span>0 invoices · 6 months to bill</span></div><div class="amt" style="color:var(--muted);font-weight:400">no ceiling</div><div class="chev">›</div></div>
+        <div class="lrow"><div class="no">LPO CSSP-ADM-0033<span class="sub">HDEC · 26 Sep</span></div><div><span class="tag">Materials</span></div>
+          <div class="pipe"><b class="on">Ordered</b><s>›</s><b class="on">Delivered</b><s>›</s><b class="next">Invoice next</b></div><div class="amt num">$490.00</div><div class="chev">›</div></div>
+        <div class="lrow"><div class="no">CSSP-ADM-0017<span class="sub">HDEC · CSSP · 24 Jul</span></div><div><span class="tag">Materials</span></div>
+          <div class="pipe"><b class="on">Ordered</b><s>›</s><b class="next">Deliver next</b><s>›</s><b>Invoiced</b></div><div class="amt num">$273.40</div><div class="chev">›</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="verdict">
+    <div><b>Best for</b><ul><li>Daily use: open it, clear the queue, close it.</li><li>Nothing gets forgotten: unbilled months, undelivered orders and ending rentals come to you.</li><li>Smallest change from today's screen; the list stays.</li></ul></div>
+    <div><b>Trade-off</b><ul><li>Shows what is late, not the shape of a contract over time.</li><li>Working on one LPO still means opening its page (that is concept 3).</li></ul></div>
+  </div>
+</section>
+
+<!-- =========================================================== CONCEPT 2 -->
+<section class="concept" data-concept="2" hidden>
+  <div class="concept-title"><h2>2 · Type boards: each kind of LPO in the view that fits it</h2><p>Rentals on a timeline, the supply contract month by month, materials orders as a pipeline.</p></div>
+  <div class="frame">
+    <div class="chrome"><i></i><i></i><i></i><span class="t">Business Hub · Client LPOs</span></div>
+    <div class="screen">
+      <div class="appbar">
+        <h4>Client LPOs</h4><span class="count">8 on file</span>
+        <div class="search">Search LPO, item, quotation, invoice <kbd>/</kbd></div>
+        <span style="flex:1"></span>
+        <button class="btn primary">+ Add LPO</button>
+      </div>
+      <div class="card">
+        <div class="typetabs" role="tablist" data-tabs="board">
+          <button role="tab" aria-selected="true" data-t="rent">Rentals<em>4</em></button>
+          <button role="tab" aria-selected="false" data-t="supply">Supply contracts<em>1</em></button>
+          <button role="tab" aria-selected="false" data-t="mat">Materials orders<em>3</em></button>
+        </div>
+
+        <div data-pane="rent">
+          <div class="tl"><div class="tl-grid" id="timeline"></div></div>
+          <div class="legend">
+            <span><i style="background:var(--navy)"></i>Billed</span>
+            <span><i style="background:var(--navy);opacity:.55"></i>Billed, dates estimated</span>
+            <span><i style="background:repeating-linear-gradient(45deg,var(--amber-soft) 0 3px,var(--surface) 3px 6px);border:1.5px solid var(--amber)"></i>To bill</span>
+            <span><i style="background:var(--grey-block)"></i>Upcoming</span>
+            <span><i style="border:1.5px dashed var(--line-strong)"></i>No end date recorded</span>
+          </div>
+          <div class="board-note">
+            <div class="card"><span class="flag">◆ To bill</span> CSSP-RENT-0004 · 24 Sep - 23 Oct <button class="btn primary sm">Bill this period</button></div>
+            <div class="card"><span class="flag">◆ Ends in 39 days</span> CSSP-RENT-0005(3) · 11 Nov <button class="btn sm">Renew</button></div>
+            <div class="card"><span class="flag">◆ 4 estimated</span> CSSP-RENT-0002 dates read from invoice dates <button class="btn sm">Confirm dates</button></div>
+          </div>
+        </div>
+
+        <div data-pane="supply" hidden>
+          <div class="supply">
+            <div class="supply-head">
+              <div><b style="font-size:15px">CSSP-OPEN-0001</b> <span class="tag">Supply contract</span></div>
+              <span class="wsub">HDEC · Supply of Diesel · $0.77 per litre · no ceiling · started 15 May</span>
+              <span class="wsub">0 invoices so far</span>
+            </div>
+            <div class="supply-grid">
+              <div class="mon"><b>May</b><span class="state todo">To bill</span><span class="wsub" style="font-size:11.5px">from 15 May</span><div class="acts"><button class="btn sm">Bill May</button><button class="btn sm">Nothing supplied</button></div></div>
+              <div class="mon"><b>June</b><span class="state todo">To bill</span><span class="wsub" style="font-size:11.5px">&nbsp;</span><div class="acts"><button class="btn sm">Bill June</button><button class="btn sm">Nothing supplied</button></div></div>
+              <div class="mon"><b>July</b><span class="state todo">To bill</span><span class="wsub" style="font-size:11.5px">&nbsp;</span><div class="acts"><button class="btn sm">Bill July</button><button class="btn sm">Nothing supplied</button></div></div>
+              <div class="mon"><b>August</b><span class="state todo">To bill</span><span class="wsub" style="font-size:11.5px">&nbsp;</span><div class="acts"><button class="btn sm">Bill August</button><button class="btn sm">Nothing supplied</button></div></div>
+              <div class="mon"><b>September</b><span class="state todo">To bill</span><span class="wsub" style="font-size:11.5px">&nbsp;</span><div class="acts"><button class="btn sm">Bill September</button><button class="btn sm">Nothing supplied</button></div></div>
+              <div class="mon cur"><b>October</b><span class="state wait">Running</span><span class="wsub" style="font-size:11.5px">bill after 31 Oct</span><div class="acts"><button class="btn sm">Log a delivery</button></div></div>
+            </div>
+            <p class="wsub">"Nothing supplied" silences a month for good, so the reminder only ever counts months that really need an invoice. "Log a delivery" keeps litres as they happen, so the month-end invoice is already filled.</p>
+          </div>
+        </div>
+
+        <div data-pane="mat" hidden>
+          <div class="kanban">
+            <div class="col"><h5>Received <span>1</span></h5>
+              <div class="kc"><b>CSSP-ADM-0017</b><span class="meta">12 office items · 24 Jul · 71 days</span>
+                <div class="bars"><div>Delivered<u style="--w:0%"></u><span>0 / 12</span></div><div>Invoiced<u style="--w:0%"></u><span>0 / 12</span></div></div>
+                <button class="btn primary sm">Create delivery note</button></div>
+            </div>
+            <div class="col"><h5>Delivered <span>1</span></h5>
+              <div class="kc"><b>LPO CSSP-ADM-0033</b><span class="meta">2 items · DN-HDEC-067 · $490.00</span>
+                <div class="bars"><div>Delivered<u style="--w:100%"></u><span>2 / 2</span></div><div>Invoiced<u style="--w:0%"></u><span>0 / 2</span></div></div>
+                <button class="btn primary sm">Create invoice</button></div>
+            </div>
+            <div class="col"><h5>Invoiced <span>0</span></h5>
+              <p class="wsub" style="padding:6px">Waiting for payment shows here, with the invoice number.</p>
+            </div>
+            <div class="col"><h5>Closed <span>1</span></h5>
+              <div class="kc"><b style="text-decoration:line-through">CSSP-ADM-0010</b><span class="meta">Office furniture · $18,390.00</span>
+                <div class="bars"><div>Delivered<u style="--w:100%"></u><span>4 / 4</span></div><div>Invoiced<u style="--w:100%"></u><span>4 / 4</span></div></div>
+                <span class="meta">DN-HDEC-046 · INV-MT-HDEC-043</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="verdict">
+    <div><b>Best for</b><ul><li>Managing the TYPES: each kind shows its own question (which month? which items?).</li><li>The rental timeline makes gaps and overlaps obvious at a glance, which a list cannot.</li><li>Supply contracts finally get a real view instead of "$0.00 invoiced".</li></ul></div>
+    <div><b>Trade-off</b><ul><li>Three screens to look at instead of one list; urgent things can hide on a tab you did not open.</li><li>The timeline needs width; on a small window it scrolls sideways.</li></ul></div>
+  </div>
+</section>
+
+<!-- =========================================================== CONCEPT 3 -->
+<section class="concept" data-concept="3" hidden>
+  <div class="concept-title"><h2>3 · Workspace: list on the left, one LPO to work on at the right</h2><p>Pick an LPO and everything about it is one click away, without leaving the screen. The PDF moves to its own tab.</p></div>
+  <div class="frame">
+    <div class="chrome"><i></i><i></i><i></i><span class="t">Business Hub · Client LPOs · CSSP-RENT-0002</span></div>
+    <div class="screen">
+      <div class="ws">
+        <div class="card side">
+          <div class="search" style="max-width:none">Find an LPO <kbd>/</kbd></div>
+          <h6>Rentals</h6>
+          <div class="sitem"><b>CSSP-RENT-0004</b><i class="dot" title="needs action"></i><span>September to bill</span></div>
+          <div class="sitem on"><b>CSSP-RENT-0002</b><span></span><span>4 of 7 months · generators</span></div>
+          <div class="sitem"><b>CSSP-RENT-0005(3)</b><i class="dot" title="needs action"></i><span>Ends 11 Nov</span></div>
+          <h6>Supply contracts</h6>
+          <div class="sitem"><b>CSSP-OPEN-0001</b><i class="dot" title="needs action"></i><span>6 months to bill</span></div>
+          <h6>Materials orders</h6>
+          <div class="sitem"><b>LPO CSSP-ADM-0033</b><i class="dot" title="needs action"></i><span>Invoice next</span></div>
+          <div class="sitem"><b>CSSP-ADM-0017</b><i class="dot" title="needs action"></i><span>Deliver next</span></div>
+          <h6>Closed · 2</h6>
+          <div class="sitem closed"><b>CSSP-RENT-0001</b><span>fully billed</span></div>
+          <div class="sitem closed"><b>CSSP-ADM-0010</b><span>fully billed</span></div>
+        </div>
+
+        <div class="main">
+          <div class="card">
+            <div class="whead">
+              <div class="wtitle">
+                <h4>CSSP-RENT-0002</h4><span class="tag">Rental</span><span class="state done">Running</span>
+                <div class="acts">
+                  <button class="btn primary">Bill October</button>
+                  <div class="menu">
+                    <button class="btn" id="moreBtn" aria-expanded="false" aria-haspopup="menu">More ▾</button>
+                    <div class="menu-pop" id="morePop" role="menu" hidden>
+                      <button role="menuitem">Sign and stamp</button>
+                      <button role="menuitem">Open original PDF</button>
+                      <button role="menuitem">Show folder</button>
+                      <button role="menuitem">Print</button>
+                      <button role="menuitem">Copy file</button>
+                      <hr>
+                      <button role="menuitem">Edit details</button>
+                      <button role="menuitem">Replace file</button>
+                      <button role="menuitem">Renew as a new LPO</button>
+                      <hr>
+                      <button role="menuitem">Close LPO</button>
+                      <button role="menuitem">Remove</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="wsub">HDEC · Rental of Generators · 14 set-months at $850 · against QUT-146 (HDEC's reference) · received 4 Jun 2026</div>
+              <div class="facts">
+                <div class="fact"><small>Billed</small><b class="num">$6,800.00</b><span>of $11,900.00</span><div class="meter"><i style="width:57%"></i></div></div>
+                <div class="fact"><small>Months</small><b class="num">4 of 7</b><span>8 Jun 2026 - 8 Jan 2027</span></div>
+                <div class="fact"><small>Next period</small><b>8 Oct - 7 Nov</b><span>due in 5 days</span></div>
+                <div class="fact"><small>Paid</small><b class="num">$0.00</b><span>4 invoices waiting</span></div>
+              </div>
+            </div>
+            <div class="wtabs" role="tablist" data-tabs="ws">
+              <button role="tab" aria-selected="false" data-t="ov">Overview</button>
+              <button role="tab" aria-selected="false" data-t="items">Items</button>
+              <button role="tab" aria-selected="true" data-t="bill">Billing</button>
+              <button role="tab" aria-selected="false" data-t="docs">Documents</button>
+              <button role="tab" aria-selected="false" data-t="hist">History</button>
+            </div>
+            <div class="wbody" data-pane="bill">
+              <div class="banner"><span class="flag">◆</span><span>4 periods use the invoice date as an estimate. Confirm the service dates once so the reminders are exact.</span><button class="btn sm">Confirm dates</button></div>
+              <table class="periods">
+                <thead><tr><th>Period</th><th>Status</th><th>Invoice</th><th class="r">Amount</th><th></th></tr></thead>
+                <tbody>
+                  <tr><td>8 Jun - 7 Jul</td><td><span class="state done">Billed</span> <span class="wsub">· estimated</span></td><td>INV-EQ-HDEC-069</td><td class="r num">$1,700.00</td><td class="r"><span class="wsub">Waiting</span></td></tr>
+                  <tr><td>8 Jul - 7 Aug</td><td><span class="state done">Billed</span> <span class="wsub">· estimated</span></td><td>INV-EQ-HDEC-070</td><td class="r num">$1,700.00</td><td class="r"><span class="wsub">Waiting</span></td></tr>
+                  <tr><td>8 Aug - 7 Sep</td><td><span class="state done">Billed</span> <span class="wsub">· estimated</span></td><td>INV-EQ-HDEC-071</td><td class="r num">$1,700.00</td><td class="r"><span class="wsub">Waiting</span></td></tr>
+                  <tr><td>8 Sep - 7 Oct</td><td><span class="state done">Billed</span> <span class="wsub">· estimated</span></td><td>INV-EQ-HDEC-072</td><td class="r num">$1,700.00</td><td class="r"><span class="wsub">Waiting</span></td></tr>
+                  <tr class="next"><td><b>8 Oct - 7 Nov</b></td><td><span class="state todo">Next to bill</span></td><td><span class="wsub">-</span></td><td class="r num">$1,700.00</td><td class="r"><button class="btn primary sm">Bill</button></td></tr>
+                  <tr><td>8 Nov - 7 Dec</td><td><span class="state wait">Upcoming</span></td><td></td><td class="r num" style="color:var(--muted)">$1,700.00</td><td></td></tr>
+                  <tr><td>8 Dec - 8 Jan</td><td><span class="state wait">Upcoming</span></td><td></td><td class="r num" style="color:var(--muted)">$1,700.00</td><td></td></tr>
+                </tbody>
+              </table>
+              <p class="wsub">"Waiting" comes from the payment status the app already keeps: none of these invoices is marked paid yet.</p>
+            </div>
+            <div class="wbody" data-pane="ov" hidden><p class="wsub">Order details (client, project, quotation, contact) with clickable links, the original and signed copy status, and the notes. The same facts as today's right-hand panel, laid out in two columns.</p></div>
+            <div class="wbody" data-pane="items" hidden><p class="wsub">The ordered lines with Ordered / Delivered / Invoiced / Left per line, and "Deliver remaining" or "Invoice delivered" right above the table.</p></div>
+            <div class="wbody" data-pane="docs" hidden><p class="wsub">The client's PDF at full width with the existing page tools and Sign and stamp, plus every linked quotation, DN and invoice as a clickable card.</p></div>
+            <div class="wbody" data-pane="hist" hidden><p class="wsub">One line per event: received, signed copy saved, each DN and invoice, dates confirmed, closed. Answers "when did we bill June?" without opening anything.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="verdict">
+    <div><b>Best for</b><ul><li>Working ON one LPO: billing, items and documents without page changes.</li><li>Ten buttons become one main action (the next thing to do) plus a "More" menu.</li><li>Jump between LPOs from the left list in one click.</li></ul></div>
+    <div><b>Trade-off</b><ul><li>The biggest rebuild of the three.</li><li>The PDF is no longer the first thing you see; it moves to the Documents tab.</li></ul></div>
+  </div>
+</section>
+
+<!-- =========================================================== RECOMMENDATION -->
+<section class="panel">
+  <h2>My recommendation: combine them, in this order</h2>
+  <div class="flow">
+    <div class="step"><h3>Land on</h3><b>Concept 1 · Today</b><span>The "needs you" queue above the list. Each list row draws its own type's progress (month squares, delivered and invoiced steps).</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><h3>Click an LPO</h3><b>Concept 3 · Workspace</b><span>List on the left, the LPO on the right, one main button, "More" menu, five tabs.</span></div>
+    <div class="arrow">→</div>
+    <div class="step"><h3>Inside the tabs</h3><b>Concept 2 · Type views</b><span>A rental's Billing tab is the timeline, the supply contract's is the month grid, a materials order's Items tab is the delivered and invoiced pipeline.</span></div>
+  </div>
+  <p class="lede">So nothing is lost: you open on what to do, work on one LPO without page changes, and every type gets the view that fits it. It can ship in steps: the queue first (smallest, most useful), then the workspace, then the type views.</p>
+</section>
+
+<!-- =========================================================== FEATURES -->
+<section class="panel">
+  <h2>Features that make it useful, ranked</h2>
+  <p class="lede">"Why" comes from your own data today. Size is a rough build estimate: S about a day, M a few days, L a week or more.</p>
+  <div class="feat-wrap">
+  <table class="feat">
+    <thead><tr><th>#</th><th>Feature</th><th>Why, from your data</th><th>Size</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><b>"Needs you" queue</b><span>Ranked to-do across all LPOs, each with its button.</span></td><td class="why">7 open actions today, found only by opening each LPO.</td><td><span class="size">S-M</span></td></tr>
+      <tr><td>2</td><td><b>Bill the next period in one click</b><span>Invoice opens with the period dates, monthly lines and LPO link filled.</span></td><td class="why">RENT-0002's October period starts in 5 days; RENT-0004 has September open.</td><td><span class="size">M</span></td></tr>
+      <tr><td>3</td><td><b>Rental timeline</b><span>Months as blocks: billed, estimated, to bill, upcoming.</span></td><td class="why">4 rentals; gaps were hard to spot before (the old "month 3 of 2").</td><td><span class="size">M</span></td></tr>
+      <tr><td>4</td><td><b>Supply contract month grid</b><span>Bill a month, or mark "nothing supplied" so it stops counting. Optional delivery log.</span></td><td class="why">OPEN-0001 shows 6 months unbilled and 0 invoices since May.</td><td><span class="size">S-M</span></td></tr>
+      <tr><td>5</td><td><b>Renewal alert and "Renew LPO"</b><span>Warns 45 days before a rental ends; copies the lines into a new LPO starting the next day.</span></td><td class="why">RENT-0005(3) ends 11 Nov; the "(3)" says HDEC renews these.</td><td><span class="size">M</span></td></tr>
+      <tr><td>6</td><td><b>One main action + "More" menu</b><span>The next thing to do is the only big button; the rest go in a menu.</span></td><td class="why">The detail page has 10 equal buttons today.</td><td><span class="size">S</span></td></tr>
+      <tr><td>7</td><td><b>Paid / waiting per LPO</b><span>From the payment status the app already keeps on invoices.</span></td><td class="why">None of the 14 HDEC rental invoices is marked paid in the app; HDEC pays 30 days after invoice.</td><td><span class="size">S</span></td></tr>
+      <tr><td>8</td><td><b>Fix-it checks</b><span>Missing end date, estimated periods, signed copy, unmatched invoice references, each with its fix.</span></td><td class="why">RENT-0004 is fully invoiced but has no end date; 4 estimated periods; 7 unsigned; 15 unmatched references.</td><td><span class="size">S</span></td></tr>
+      <tr><td>9</td><td><b>LPO statement</b><span>A PDF or Excel per LPO or per client: ordered, delivered, invoiced, paid, left.</span></td><td class="why">For reconciling with HDEC's accounts, who track per LPO.</td><td><span class="size">M</span></td></tr>
+      <tr><td>10</td><td><b>History tab</b><span>Every event on the LPO in date order.</span></td><td class="why">Answers "when did we bill June?" without opening invoices.</td><td><span class="size">S</span></td></tr>
+      <tr><td>11</td><td><b>Search everything, keyboard first</b><span>"/" to search; finds items, invoice numbers, quotations; arrow keys move through the list.</span></td><td class="why">Find "Office chair" or "INV-EQ-HDEC-072" and land on its LPO.</td><td><span class="size">S</span></td></tr>
+      <tr><td>12</td><td><b>Drop the PDF, the app fills the form</b><span>AI reads the client's PO: number, date, quotation, lines.</span></td><td class="why">Your HDEC PDFs are scans (no text inside), so this needs the AI reader. Optional, last.</td><td><span class="size">L</span></td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section class="panel">
+  <h2>To decide next</h2>
+  <ol class="qs">
+    <li>Which direction: 1, 2, 3, or the combination?</li>
+    <li>Which features are in the first version? My pick: 1, 2, 3, 4, 6, 8.</li>
+  </ol>
+</section>
+
+</div>
+
+<script>
+// Concept switcher, theme, tabs and the rental timeline. Demo only.
+(function () {
+  const seg = document.getElementById("conceptSeg");
+  const show = (c) => {
+    seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.c === c)));
+    document.querySelectorAll("[data-concept]").forEach(s => { s.hidden = c !== "all" && s.dataset.concept !== c; });
+    try { localStorage.setItem("lpo-concept", c); } catch (e) {}
+  };
+  seg.addEventListener("click", e => { const b = e.target.closest("button"); if (b) show(b.dataset.c); });
+  const asked = new URLSearchParams(location.search).get("c");
+  if (asked) show(asked);
+  else { try { const c = localStorage.getItem("lpo-concept"); if (c) show(c); } catch (e) {} }
+
+  const themeBtn = document.getElementById("themeBtn");
+  const dark = () => document.documentElement.dataset.theme === "dark"
+    || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+  const label = () => { themeBtn.textContent = dark() ? "Light mode" : "Dark mode"; };
+  themeBtn.addEventListener("click", () => { document.documentElement.dataset.theme = dark() ? "light" : "dark"; label(); });
+  label();
+
+  document.querySelectorAll("[data-tabs]").forEach(list => {
+    const host = list.parentElement;
+    list.addEventListener("click", e => {
+      const b = e.target.closest("button"); if (!b) return;
+      list.querySelectorAll("button").forEach(x => x.setAttribute("aria-selected", String(x === b)));
+      host.querySelectorAll(":scope > [data-pane]").forEach(p => { p.hidden = p.dataset.pane !== b.dataset.t; });
+    });
+  });
+  document.querySelectorAll("[data-chips]").forEach(g => g.addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    g.querySelectorAll(".chip").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+  }));
+
+  const more = document.getElementById("moreBtn"), pop = document.getElementById("morePop");
+  more.addEventListener("click", () => { const open = pop.hidden; pop.hidden = !open; more.setAttribute("aria-expanded", String(open)); });
+  document.addEventListener("click", e => { if (!e.target.closest(".menu")) { pop.hidden = true; more.setAttribute("aria-expanded", "false"); } });
+
+  // Rental timeline: 1 Apr 2026 to 31 Jan 2027, positioned by real dates.
+  const T0 = Date.UTC(2026, 3, 1), T1 = Date.UTC(2027, 1, 1);
+  const pos = (d) => ((Date.UTC(d[0], d[1] - 1, d[2]) - T0) / (T1 - T0)) * 100;
+  const rentals = [
+    { no: "CSSP-RENT-0004", sub: "vehicles · from 24 Jul", blocks: [
+      [[2026,7,24],[2026,8,24],"b","Billed · 093"], [[2026,8,24],[2026,9,24],"b","Billed · 094, 095"],
+      [[2026,9,24],[2026,10,24],"t","To bill"], [[2026,10,24],[2027,1,31],"open","No end date"] ] },
+    { no: "CSSP-RENT-0002", sub: "2 generators · to 8 Jan", blocks: [
+      [[2026,6,8],[2026,7,8],"e","069 · est."], [[2026,7,8],[2026,8,8],"e","070 · est."],
+      [[2026,8,8],[2026,9,8],"e","071 · est."], [[2026,9,8],[2026,10,8],"e","072 · est."],
+      [[2026,10,8],[2026,11,8],"f","Next"], [[2026,11,8],[2026,12,8],"f",""], [[2026,12,8],[2027,1,9],"f","Ends 8 Jan"] ] },
+    { no: "CSSP-RENT-0005(3)", sub: "vehicle · to 11 Nov", blocks: [
+      [[2026,8,12],[2026,9,12],"b","096"], [[2026,9,12],[2026,10,12],"b","097"],
+      [[2026,10,12],[2026,11,12],"b","098 · ends"] ] },
+    { no: "CSSP-RENT-0001", sub: "closed · 18 Apr - 12 Aug", closed: true, blocks: [
+      [[2026,4,18],[2026,5,18],"b","089"], [[2026,5,18],[2026,6,18],"b","090"],
+      [[2026,6,18],[2026,7,18],"b","091"], [[2026,7,18],[2026,8,13],"b","092"] ] },
+  ];
+  const grid = document.getElementById("timeline");
+  const months = ["Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan"];
+  grid.innerHTML = `<div></div><div class="tl-months">${months.map(m => `<span>${m}</span>`).join("")}<i class="today" style="left:${pos([2026,10,3])}%"></i></div>`
+    + rentals.map(r => `<div class="tl-lab"><b style="${r.closed ? "text-decoration:line-through;color:var(--subtle)" : ""}">${r.no}</b><span>${r.sub}</span></div>
+      <div class="tl-track">${r.blocks.map(([a, b, k, t]) =>
+        `<div class="blk ${k}" style="left:calc(${pos(a)}% + 1px);width:calc(${pos(b) - pos(a)}% - 2px)" title="${t}">${t}</div>`).join("")}</div>`).join("");
+})();
+</script>
+</body>
+</html>

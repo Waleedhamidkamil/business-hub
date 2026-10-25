@@ -1,0 +1,84 @@
+/* Clients owns these styles; Materials keeps its existing layout and fields. */
+.md-section-tabs { display: inline-flex; align-items: center; gap: 3px; padding: 3px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface-sunk, var(--bg)); }
+.md-section-tabs button { min-height: 32px; border: 0; border-radius: 7px; padding: 6px 15px; font-size: 13px; font-weight: 650; color: var(--text-muted); background: transparent; box-shadow: none; }
+.md-section-tabs button[aria-current="page"] { color: var(--navy); background: var(--surface); box-shadow: var(--shadow-xs); }
+.cm-view { display: flex; flex-direction: column; height: 100%; min-height: 0; max-width: none; color: var(--text); }
+.cm-head { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 20px 4px 12px; }
+.cm-title, .cm-head-actions, .cm-section-top, .cm-client-top, .cm-form-footer, .cm-footer-actions { display: flex; align-items: center; gap: 12px; }
+.cm-title h2 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+.cm-head-actions button, .cm-section-top button, .cm-footer-actions button { min-height: 34px; font-size: 12.5px; }
+.cm-toolbar { display: flex; align-items: center; gap: 14px; padding: 0 4px 14px; border-bottom: 1px solid var(--border); }
+.cm-toolbar input { flex: 1; max-width: 440px; min-width: 160px; }
+.cm-toolbar label { display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 13px; }
+.cm-toolbar input, .cm-toolbar select, .cm-field input, .cm-field select, .cm-field textarea { width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); padding: 9px 11px; font: inherit; font-size: 13px; }
+.cm-toolbar select { width: auto; }
+.cm-body { display: grid; grid-template-columns: minmax(250px, 31%) minmax(0, 1fr); gap: 16px; min-height: 0; flex: 1; padding: 14px 4px 20px; }
+.cm-list, .cm-detail { min-width: 0; min-height: 0; border: 1px solid var(--border); border-radius: 13px; background: var(--surface); overflow: hidden; }
+.cm-list { overflow-y: auto; }
+.cm-list[aria-busy="true"] { opacity: .6; }
+.cm-client { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 6px; padding: 15px 17px; width: 100%; height: auto; text-align: start; border: 0; border-bottom: 1px solid var(--border); border-radius: 0; background: transparent; color: var(--text); box-shadow: none; cursor: pointer; }
+.cm-client-top { justify-content: space-between; align-items: start; }
+.cm-client strong { font-size: 14px; overflow-wrap: anywhere; }
+.cm-client-sub, .cm-client-meta { font-size: 12px; line-height: 1.5; color: var(--text-muted); overflow-wrap: anywhere; }
+.cm-client-meta { font-size: 11.5px; }
+.cm-client:hover { background: var(--surface-sunk, var(--bg)); }
+.cm-client.is-selected { background: var(--navy-soft); box-shadow: inset 3px 0 var(--navy); }
+.cm-badge, .cm-scope { flex: none; padding: 3px 8px; border-radius: 6px; color: var(--text-muted); border: 1px solid var(--border); font-size: 11px; font-weight: 650; line-height: 1.4; }
+.cm-count { color: var(--text-muted); font-size: 12px; }
+.cm-form { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.cm-detail-head { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 18px 22px; border-bottom: 1px solid var(--border); }
+.cm-detail-head h3 { margin: 3px 0 0; font-size: 21px; overflow-wrap: anywhere; }
+.cm-eyebrow { font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); font-weight: 700; }
+.cm-form-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 0 22px 20px; scrollbar-gutter: stable; }
+.cm-section { padding: 19px 0; border-bottom: 1px solid var(--border); }
+.cm-section:last-child { border: 0; padding-bottom: 0; }
+.cm-section h4 { margin: 0; font-size: 14px; }
+.cm-section-top { justify-content: space-between; margin-bottom: 13px; flex-wrap: wrap; }
+.cm-section > h4 { margin-bottom: 13px; }
+.cm-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.cm-field { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; color: var(--text); font-size: 12px; font-weight: 600; }
+.cm-field textarea { resize: vertical; min-height: 62px; line-height: 1.5; }
+.cm-field small, .cm-muted { font-size: 12px; font-weight: 400; line-height: 1.55; color: var(--text-muted); }
+.cm-muted { margin: 6px 0 12px; }
+.cm-full { grid-column: 1 / -1; }
+.cm-repeat-row { padding: 13px; border: 1px solid var(--border); border-radius: 9px; margin-top: 10px; }
+.cm-repeat-row .cm-section-top { margin-bottom: 10px; font-size: 12px; }
+.cm-check { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: 12px; font-weight: 400; line-height: 1.5; }
+.cm-check input { width: 15px; height: 15px; margin: 0; accent-color: var(--navy); }
+.cm-alternatives { display: flex; flex-wrap: wrap; gap: 10px 20px; margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: 8px; }
+.cm-alternatives legend { padding: 0 5px; font-size: 12px; font-weight: 600; }
+.cm-alternatives .cm-muted { margin: 0; }
+.cm-bank-note { margin-bottom: 0; }
+.cm-form-footer { justify-content: space-between; padding: 13px 18px; border-top: 1px solid var(--border); background: var(--surface-sunk, var(--bg)); flex-wrap: wrap; }
+.cm-form-footer > span { color: var(--text-muted); font-size: 11.5px; }
+.cm-footer-actions { margin-left: auto; flex-wrap: wrap; gap: 8px; }
+.cm-message { padding: 10px 14px; margin: 10px 4px 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font-size: 13px; }
+.cm-message.is-error { border-inline-start: 4px solid var(--warn); }
+.cm-empty { padding: 28px 22px; text-align: center; color: var(--text-muted); font-size: 13px; line-height: 1.6; }
+.cm-empty h3, .cm-empty strong { color: var(--text); }
+.cm-welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 30px; }
+.cm-welcome p { max-width: 380px; margin: 5px 0; }
+.cm-monogram { display: grid; place-items: center; width: 58px; height: 58px; border: 1px solid var(--border); border-radius: 16px; color: var(--navy); background: var(--navy-soft); font-size: 24px; font-weight: 700; margin-bottom: 12px; }
+.cm-view :is(input,textarea,select,button):focus-visible, .md-section-tabs button:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.cm-client:focus-visible { outline-offset: -3px; }
+.cm-view [hidden] { display: none !important; }
+@media (max-width: 1000px) { .cm-body { grid-template-columns: 245px minmax(0,1fr); gap: 12px; } .cm-grid { grid-template-columns: 1fr; } .cm-title { flex-wrap: wrap; } .cm-form-scroll { padding-inline: 16px; } }
+@media (max-width: 720px) { .cm-body { grid-template-columns: 1fr; overflow: auto; } .cm-list { max-height: 230px; } .cm-detail { min-height: 550px; } .cm-toolbar { flex-wrap: wrap; } .cm-head { gap: 12px; } }
+
+/* Add-a-client, offered when a save names someone who is not on file
+   (2026-09-11). Same fields and the same `cm_save` as the Clients screen, in a
+   popup, so a half-finished invoice does not have to be abandoned to add a
+   client. Deliberately reuses the .cm-field rules above rather than growing a
+   second set of form styles. */
+.client-required-popup .cr-form { display: flex; flex-direction: column; gap: 14px; }
+.client-required-popup .cr-lead { margin: 0; font-size: 13px; line-height: 1.55; color: var(--text); }
+.client-required-popup .cr-field { display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-width: 0; color: var(--text); font-size: 12px; font-weight: 600; }
+.client-required-popup .cr-field input,
+.client-required-popup .cr-field select,
+.client-required-popup .cr-field textarea { width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); padding: 9px 11px; font: inherit; font-size: 13px; }
+.client-required-popup .cr-field textarea { resize: vertical; min-height: 54px; line-height: 1.5; }
+.client-required-popup .cr-field small { font-size: 12px; font-weight: 400; line-height: 1.55; color: var(--text-muted); }
+.client-required-popup .cr-field small b { font-weight: 700; color: var(--brand); font-variant-numeric: tabular-nums; }
+/* The dialog's own message line: a refusal from the client store, or "Saving".
+   Never colour alone - it is words, and it sits where the eye already is. */
+.client-required-popup .cr-note { margin: 0; padding: 9px 11px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-sunk, var(--bg)); font-size: 12px; line-height: 1.5; color: var(--text); }

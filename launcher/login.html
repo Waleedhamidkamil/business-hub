@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Business Hub</title>
+<style>
+:root {
+    --bg: #F8FAFC; --surface: #ffffff; --sunk: #F1F3F5;
+    --text: #0F172A; --muted: #475569; --subtle: #64748B;
+    --border: #E4E7EB; --border-strong: #CBD2D9;
+    --navy: #1E3A5F; --accent: #2563EB; --accent-hover: #1D4ED8; --on-accent: #ffffff;
+    --ring: rgba(37, 99, 235, 0.22);
+    --danger: #B91C1C; --danger-soft: rgba(220, 38, 38, 0.07); --danger-line: rgba(185, 28, 28, 0.35);
+}
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #0E1726; --surface: #16213A; --sunk: #111B30;
+        --text: #E5EAF2; --muted: #9FB0C8; --subtle: #8C9CB8;
+        --border: #26334D; --border-strong: #38496A;
+        --navy: #A9C4EE; --accent: #2F63C6; --accent-hover: #3A6FD2; --on-accent: #ffffff;
+        --ring: rgba(116, 162, 230, 0.30);
+        --danger: #F7A39C; --danger-soft: rgba(242, 100, 90, 0.10); --danger-line: rgba(247, 163, 156, 0.35);
+    }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+    background: var(--bg); color: var(--text);
+    font: 14px/1.45 "Segoe UI", system-ui, sans-serif;
+    display: grid; place-items: center; padding: 16px;
+}
+.card {
+    width: min(372px, 100%);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 30px 30px 20px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.07);
+}
+.brand { font-size: 23px; font-weight: 700; letter-spacing: -0.01em; color: var(--navy); }
+.sub { margin-top: 2px; color: var(--muted); }
+label.field { display: block; margin-top: 18px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.input {
+    display: flex; align-items: center; margin-top: 6px; height: 38px;
+    border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface);
+}
+.input:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring); }
+.input input {
+    flex: 1; min-width: 0; height: 100%; padding: 0 12px; border: 0; border-radius: 8px;
+    background: transparent; color: var(--text); font: inherit; outline: none;
+}
+.peek {
+    margin-right: 6px; padding: 3px 8px; border: 0; border-radius: 6px; background: none;
+    color: var(--muted); font: 600 12px "Segoe UI", system-ui, sans-serif; cursor: pointer;
+}
+.peek:hover { background: var(--sunk); color: var(--text); }
+.keep { display: flex; align-items: center; gap: 8px; margin-top: 16px; color: var(--muted); cursor: pointer; user-select: none; }
+.keep input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+.msg {
+    display: none; margin-top: 16px; padding: 9px 12px; border-radius: 8px;
+    border: 1px solid var(--danger-line); background: var(--danger-soft); color: var(--danger);
+    font-weight: 600;
+}
+.msg.show { display: flex; gap: 8px; align-items: flex-start; }
+.msg .mark {
+    flex: none; width: 18px; height: 18px; margin-top: 1px; border-radius: 50%;
+    border: 1.5px solid currentColor; display: grid; place-items: center; font-size: 12px; line-height: 1;
+}
+.actions { display: grid; gap: 8px; margin-top: 20px; }
+button.primary, button.secondary {
+    height: 40px; border-radius: 8px; font: 600 14px "Segoe UI", system-ui, sans-serif; cursor: pointer;
+}
+button.primary { border: 0; background: var(--accent); color: var(--on-accent); }
+button.primary:hover { background: var(--accent-hover); }
+button.secondary { border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); }
+button.secondary:hover { background: var(--sunk); }
+button[disabled] { opacity: 0.6; cursor: default; }
+button:focus-visible, .linkbtn:focus-visible { outline: 3px solid var(--ring); outline-offset: 2px; }
+.server {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border);
+    font-size: 12px; color: var(--subtle);
+}
+.server b { color: var(--muted); font-weight: 600; }
+.linkbtn { border: 0; padding: 0; background: none; color: var(--accent); font: inherit; cursor: pointer; text-decoration: underline; }
+@media (prefers-color-scheme: dark) { .linkbtn { color: var(--navy); } }
+.ver { margin-top: 10px; font-size: 11px; color: var(--subtle); text-align: right; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<form class="card" id="form" autocomplete="off" novalidate>
+    <div class="brand">Business Hub</div>
+    <div class="sub">Log in to the office server</div>
+
+    <label class="field" for="user">Name</label>
+    <div class="input"><input id="user" type="text" spellcheck="false" autocapitalize="off" autocomplete="username"></div>
+
+    <label class="field" for="pw">Password</label>
+    <div class="input">
+        <input id="pw" type="password" autocomplete="current-password">
+        <button class="peek" id="peek" type="button" aria-controls="pw">Show</button>
+    </div>
+
+    <label class="keep"><input id="remember" type="checkbox"> Keep me logged in on this PC</label>
+
+    <div class="msg" id="msg" role="alert"><span class="mark" aria-hidden="true">!</span><span id="msgText"></span></div>
+
+    <div class="actions">
+        <button class="primary" id="go" type="submit">Log in</button>
+        <button class="secondary" id="again" type="button" hidden>Try again</button>
+    </div>
+
+    <div id="serverBox" hidden>
+        <label class="field" for="server">Server name or address</label>
+        <div class="input"><input id="server" type="text" spellcheck="false" placeholder="businesshub:8765"></div>
+    </div>
+    <div class="server">
+        <span>Server: <b id="serverText">not set</b></span>
+        <button class="linkbtn" id="change" type="button">Change</button>
+    </div>
+    <div class="ver" id="ver"></div>
+</form>
+<script>
+(function () {
+    const $ = (id) => document.getElementById(id);
+    const api = () => window.pywebview && window.pywebview.api;
+
+    function say(text) {
+        $("msgText").textContent = text || "";
+        $("msg").classList.toggle("show", !!text);
+    }
+    function busy(on, label) {
+        $("go").disabled = on;
+        $("again").disabled = on;
+        $("go").textContent = label || "Log in";
+    }
+    function showServer(open) {
+        $("serverBox").hidden = !open;
+        $("change").textContent = open ? "Hide" : "Change";
+        if (open) $("server").focus();
+    }
+    function enter(next) {
+        busy(true, "Opening…");
+        location.replace(next);
+    }
+
+    async function start() {
+        const s = await api().launcher_state();
+        $("server").value = s.server || "";
+        $("serverText").textContent = s.server ? s.server.replace(/^https?:\/\//, "") : "not set";
+        if (!s.server) showServer(true);
+        $("user").value = s.user || "";
+        $("remember").checked = !!s.saved_session;
+        $("again").hidden = !s.saved_session;
+        $("ver").textContent = "Launcher " + (s.version || "");
+        if (s.notice) say(s.notice);
+        ($("user").value ? $("pw") : $("user")).focus();
+    }
+
+    $("peek").onclick = () => {
+        const shown = $("pw").type === "text";
+        $("pw").type = shown ? "password" : "text";
+        $("peek").textContent = shown ? "Show" : "Hide";
+        $("pw").focus();
+    };
+    $("change").onclick = () => showServer($("serverBox").hidden);
+
+    $("again").onclick = async () => {
+        busy(true, "Connecting…");
+        say("");
+        try {
+            const r = await api().launcher_resume();
+            if (r && r.ok) return enter(r.next);
+            say((r && r.error) || "Please log in.");
+            $("again").hidden = true;
+        } catch (e) { say(String((e && e.message) || e)); }
+        busy(false);
+    };
+
+    $("form").onsubmit = async (e) => {
+        e.preventDefault();
+        const user = $("user").value.trim();
+        const pw = $("pw").value;
+        if (!$("server").value.trim()) { showServer(true); say("Type the server's name or address."); return; }
+        if (!user || !pw) { say("Type your name and password."); ($("user").value ? $("pw") : $("user")).focus(); return; }
+        busy(true, "Logging in…");
+        say("");
+        try {
+            const r = await api().launcher_login($("server").value, user, pw, $("remember").checked);
+            if (r && r.ok) return enter(r.next);
+            say((r && r.error) || "Could not log in.");
+        } catch (err) { say(String((err && err.message) || err)); }
+        busy(false);
+        $("pw").select();
+    };
+
+    if (api()) start(); else window.addEventListener("pywebviewready", start);
+})();
+</script>
+</body>
+</html>

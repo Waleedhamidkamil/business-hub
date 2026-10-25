@@ -1,0 +1,35 @@
+pywebview>=5.0
+jinja2>=3.1
+openpyxl>=3.1
+# PDF *rendering* still uses headless Chrome or Edge (already installed on
+# Windows) - nothing here rasterises or lays out a page.
+# pypdf (2026-07-30) is only used to MERGE an existing PDF into a finished one:
+# when a client returns a signed delivery note as a PDF, its pages are spliced
+# into the invoice in place of a placeholder page. Pure Python, no native
+# binary, and it copies page objects rather than re-rendering them, so the
+# scan keeps its original quality. See inv_generator._merge_signed_pdfs.
+pypdf>=4.0
+
+# 2026-10-07: every generated PDF is locked with AES-256 (backend/pdf_lock.py);
+# pypdf needs this for AES. Pure wheel, already present with pywebview.
+cryptography>=41
+
+# 2026-10-17: Eshraqat PDFs are sealed with an invisible certification signature
+# (Acrobat's "Certify") from Waleed's own .pfx instead of AES, so they do not
+# read as app-locked. See backend/pdf_certify.py. Pure-Python wheels.
+pyhanko>=0.37
+
+# OPTIONAL (2026-09-12). Renders one page of a client's LPO to a JPEG so the
+# screen can show it without handing the whole PDF to pdf.js. Measured on
+# CSSP-ADM-0010, a 614 KB two-page scan: 819 KB of base64 PDF against 199 KB
+# for the page you are actually looking at, and the render is cached on disk.
+#
+# It is genuinely optional - `Api.lpo_page_image` reports `no_rasteriser` when
+# it is absent and the viewer falls back to pdf.js, which is still vendored.
+# Left commented because it is a ~50 MB native wheel and this app otherwise
+# ships none: uncomment it if you want the faster viewer.
+# pymupdf>=1.24
+
+# 2026-10-22: imported by profile_manager (logo thumbnails), image search and
+# item images, but never listed - a fresh server would install without it.
+Pillow>=10

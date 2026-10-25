@@ -1,0 +1,122 @@
+{% import 'eshraqat/_components.html' as esh with context %}
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>{{ inv.inv_no or 'Invoice' }}</title>
+{% if inline_css %}<style>{{ css_text|safe }}</style>{% else %}<link rel="stylesheet" href="{{ css_href }}">{% endif %}
+<style>
+/* Invoice adopts the quotation closing design: item-only table, amount-in-words
+   + payment on the left, Subtotal/Withholding/Grand Total on the right, and the
+   signature pushed to the bottom of the page. */
+.esh-invoice-document .esh-page { display: flex; flex-direction: column; overflow: visible; }
+.esh-invoice-document .esh-page > .esh-table { flex-shrink: 0; }
+.esh-invoice-document .esh-closing-zone { flex-shrink: 0; }
+.esh-invoice-document .esh-table tbody tr { height: var(--esh-row-mm, 14mm); }
+.esh-invoice-document .esh-table--autofit tbody tr { height: auto; }
+
+/* Payment block sits UNDER the amount-in-words (left column). */
+.esh-invoice-document .esh-inv-payment {
+    margin-top: 4mm;
+    padding: 2.2mm 3mm;
+    border-left: 2px solid #861432;
+    background: #fff6f6;
+    color: #4f5155;
+    font-size: 7pt;
+    line-height: 1.3;
+}
+.esh-invoice-document .esh-inv-payment-title {
+    margin-bottom: 1mm;
+    color: #292a2d;
+    font-size: 7.5pt;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+.esh-invoice-document .esh-inv-payment-line { overflow-wrap: anywhere; }
+.esh-invoice-document .esh-inv-payment-line--company { font-weight: 800; }
+
+/* Signature pushed to the bottom-right, shifted up a little from the footer. */
+.esh-invoice-document .esh-inv-signature {
+    margin-top: auto;
+    flex-shrink: 0;
+    align-self: flex-end;
+    width: 46%;
+    min-height: 22mm;
+    margin-bottom: 8mm;
+    text-align: center;
+}
+.esh-invoice-document .esh-inv-signature-line {
+    margin: 16mm 5mm 1.2mm;
+    border-top: .8px solid #d8dadd;
+}
+.esh-invoice-document .esh-inv-signature-label { font-size: 8pt; font-weight: 800; }
+.esh-invoice-document .esh-inv-signature-name { color: #6e7379; font-size: 7pt; }
+</style>
+</head>
+<body class="esh-document esh-invoice-document" data-invoice-type="{{ inv.inv_type or 'materials' }}" style="--brand: {{ brand }};">
+
+{% for page in pages %}
+{% set page_role = 'single' if page.total_pages == 1 else ('header' if loop.first else ('footer' if loop.last else 'body')) %}
+<section class="esh-page{% if not loop.last %} page-break{% endif %}" data-page-role="{{ page_role }}">
+    {% if page.show_header %}
+    {{ esh.header() }}
+    {{ esh.meta_grid(meta_rows) }}
+    {% endif %}
+
+    <table class="esh-table{% if autofit %} esh-table--autofit{% endif %}" style="
+            {% if page.row_min_mm %}--esh-row-mm: {{ page.row_min_mm }}mm;{% endif %}
+            {% if page.fill_table %}height: {{ page.table_area_mm }}mm;{% endif %}">
+        {{ esh.table_header(columns) }}
+        <tbody>
+            {% for row in page.display_rows %}
+            <tr>
+                {% for cell in row %}<td class="al-{{ cell.align }}">{{ cell.val }}</td>{% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if page.show_footer %}
+    <div class="esh-closing-zone">
+        <div class="esh-amount-block">
+            <div class="esh-amount-words">
+                <div class="esh-closing-label">Amount in words</div>
+                <div><span class="esh-muted">Currency:</span> {{ (bank.currency if bank else '') or 'USD' }}</div>
+                <strong>{{ grand_words }}</strong>
+                <div class="esh-inv-payment">
+                    {% if bank %}
+                    <div class="esh-inv-payment-title">Payment Info</div>
+                    {% if bank.company_line %}<div class="esh-inv-payment-line esh-inv-payment-line--company">{{ bank.company_line }}</div>{% endif %}
+                    <div class="esh-inv-payment-line">Bank Name: {{ bank.bank_name }}</div>
+                    {% if bank.branch %}<div class="esh-inv-payment-line">Branch: {{ bank.branch }}</div>{% endif %}
+                    {% if bank.swift %}<div class="esh-inv-payment-line">Swift Code: {{ bank.swift }}</div>{% endif %}
+                    {% if bank.account_no %}<div class="esh-inv-payment-line">Account No.: {{ bank.account_no }}</div>{% endif %}
+                    {% if bank.iban %}<div class="esh-inv-payment-line">IBAN: {{ bank.iban }}</div>{% endif %}
+                    {% else %}
+                    <div class="esh-inv-payment-title">Payment Method</div>
+                    <div class="esh-inv-payment-line esh-inv-payment-line--company">Cash</div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="esh-total-list">
+                <div class="esh-total-row"><span>Subtotal</span><strong>{{ grand_amount }}</strong></div>
+                {% if show_withholding %}<div class="esh-total-row"><span>Withholding Tax (3.3%)</span><strong>{{ withholding_status }}</strong></div>{% endif %}
+                <div class="esh-total-row esh-grand-total"><span>Grand Total</span><strong>{{ grand_amount }}</strong></div>
+            </div>
+        </div>
+    </div>
+    <div class="esh-inv-signature sig-box">
+        {{ sig_overlay_main|safe }}
+        <div class="esh-inv-signature-line"></div>
+        <div class="esh-inv-signature-label">{{ company.signature_label or 'Authorized Signatory' }}</div>
+        {% if company.signature_name %}<div class="esh-inv-signature-name">{{ company.signature_name }}</div>{% endif %}
+    </div>
+    {{ esh.footer() }}
+    {% endif %}
+
+    {{ esh.page_number(page.page_index, page.total_pages) }}
+</section>
+{% endfor %}
+
+</body>
+</html>

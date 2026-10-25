@@ -1,0 +1,244 @@
+/* =========================================================
+   Quotation document styles (English, LTR) - mirrors QUT TEMPLATE.xlsm.
+   Font: Bahnschrift (ships with Win10/11) -> Roboto fallback (bundled).
+   Navy header (#1F3864), bordered items table, bottom-right signature.
+
+   Layout: each <section.quote-page> is one physical A4 page. The table
+   height is forced (inline style from Python) so tbody rows stretch to
+   fill; thead/tfoot are fixed so only data rows absorb the slack. The
+   footer (closing + terms + signature) is absolutely pinned to the bottom
+   of the page that carries it.
+   ========================================================= */
+
+@page {
+    size: A4;
+    margin: 12mm 12mm 12mm 12mm;
+}
+
+html, body {
+    margin: 0; padding: 0;
+    font-family: "Bahnschrift", "Roboto Condensed", "Arial Narrow",
+                 "Roboto", "Segoe UI", sans-serif;
+    color: #000;
+    background: #fff;
+}
+
+.quote-document { direction: ltr; }
+
+.quote-page {
+    position: relative;
+    box-sizing: border-box;
+    width: 186mm;             /* A4 width - 2*12mm margins */
+    min-height: 273mm;        /* A4 height - 2*12mm margins (one printable page) */
+    margin: 0 auto;
+}
+.quote-page.page-break { page-break-after: always; }
+
+/* ---------- header (page 1 only) ---------- */
+.q-header {
+    display: flex; flex-direction: row;
+    align-items: center; justify-content: space-between;
+    gap: 12px; padding: 2px 0 6px 0;
+}
+.q-logo { flex: 0 0 auto; }
+.q-logo img { max-height: 80px; max-width: 170px; display: block; }
+.q-company {
+    flex: 1 1 auto; text-align: right;
+    color: var(--brand); font-weight: 600; font-size: 15pt; line-height: 1.3;
+}
+.q-rule { border-bottom: 2px solid #000; margin-bottom: 6px; }
+
+.q-title {
+    text-align: center; font-size: 22pt; font-weight: 600;
+    margin: 4px 0 10px 0; color: #000;
+}
+
+/* ---------- meta block ---------- */
+.q-meta {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 2px; margin-bottom: 10px;
+}
+.q-mrow { display: flex; flex-direction: row; align-items: baseline; }
+.q-lbl {
+    width: 52mm; text-align: right; padding-right: 10mm;
+    font-size: 11pt; font-weight: 600;
+}
+.q-val {
+    width: 60mm; text-align: center; font-size: 11pt;
+    border-bottom: 1px solid #000; min-height: 16px; padding-bottom: 1px;
+}
+
+/* ---------- items table ---------- */
+.q-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 10pt;
+}
+.q-table th, .q-table td {
+    border: 1px solid #000;
+    padding: 2px 4px;
+    text-align: center;
+    vertical-align: middle;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    /* Preserve newlines that the user typed in the editor (Enter -> \n
+       inside a cell value). Also keeps text wrapping naturally. */
+    white-space: pre-wrap;
+}
+/* Fixed-height header & grand-total rows; tbody rows absorb the remaining
+   table height when fill_table is set; otherwise rows sit at natural
+   height with a sensible minimum so they don't look razor-thin. */
+/* The thead reserve is the ENGINE's Q_HEADER_ROW_MM, published as --q-head-mm
+   (2026-09-05, docs/12 SS4.7). It used to be a second copy of the number
+   written here as a literal; A-84 is what two copies of one millimetre
+   value cost. The fallback exists only for a render that forgot to publish
+   it - keep it equal to the engine default. */
+.q-table thead th {
+    font-weight: 700;
+    height: var(--q-head-mm, 9mm);
+    /* Headers wrap normally (no pre-wrap) so long bold labels like
+       "Vehicle/Equipment Type" can break to a second line instead of
+       overflowing their narrow columns. With table-layout: fixed, that
+       overflow was making center-aligned headers visually shift left. */
+    white-space: normal;
+    line-height: 1.15;
+    padding: 3px 4px;
+}
+.q-table tfoot td { height: 10mm; }
+/* Phase L.3 - row height set per-page by the pagination engine via
+   --q-row-mm CSS variable. 12mm is the compact default; engine stretches
+   it when a single page has few items so it doesn't look empty. */
+.q-table tbody tr { height: var(--q-row-mm, 12mm); }
+
+/* Auto-fit: rows hug their text exactly - no fixed/stretched height, no extra
+   space above or below. (vertical-align:top keeps multi-line cells snug at the
+   top so single-line neighbours don't grow.) */
+.q-table.q-table--autofit tbody tr { height: auto; }
+.q-table.q-table--autofit tbody td { vertical-align: middle; line-height: 1.18; }
+.q-table.q-table--autofit tbody td.cell-image { height: auto; max-height: var(--q-img-autofit-mm, 24mm); vertical-align: middle; }
+
+/* Column alignment (widths are set inline per the type schema). */
+.q-table .al-center { text-align: center; }
+.q-table .al-left   { text-align: left; }
+
+.q-grand td { font-weight: 700; font-size: 11pt; }
+.q-grand td:nth-child(2) { font-weight: 600; }
+
+/* Image cells in the PDF - fit cell with small margin, preserve aspect.
+   Phase L.5 - CAP the image height so it can't push the row taller than
+   the pagination engine assumed. This was the root cause of multi-page
+   QUT layouts spilling everywhere: a tall image made the actual row much
+   taller than estimate_row_height_mm calculated, so the table overflowed
+   the last-page area and ran into the signature/terms block. */
+.q-table td.cell-image {
+    padding: 1mm;
+    vertical-align: middle;
+    height: var(--q-row-mm, 12mm);    /* hard-cap to the row min */
+    /* 2026-07-30 - follows the `image_row_min_mm` setting, which is also what
+       estimate_row_height_mm reserves per image row. These two MUST agree: a
+       hardcoded cap (it was 22mm) silently wasted the extra page space the
+       paginator had already reserved when the setting was raised. */
+    max-height: var(--q-img-mm, 22mm);
+    overflow: hidden;
+}
+.q-table td.cell-image img {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    max-height: 20mm;                 /* leaves 2mm padding inside row */
+    object-fit: contain;
+}
+
+/* ---------- closing line ---------- */
+.q-closing {
+    text-align: center; font-size: 8.5pt;
+    margin: 4mm 0 0 0; padding: 0 4mm;
+}
+
+/* ---------- footer: ALWAYS pinned to the bottom of the page that
+   shows it (the last page of the quote - single-page or multi-page,
+   doesn't matter). Same screen position whether the quote has 1 row
+   or 10 rows. ---------- */
+.q-footer {
+    position: absolute;
+    bottom: 4mm;
+    left: 0; right: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12mm;
+}
+/* Cap terms at ~half the page so a long term wraps near the centre and
+   continues below (as a hanging-indented continuation of the SAME number,
+   not a new term). break-word handles long unbroken strings like "5555…". */
+.q-terms { flex: 0 1 auto; max-width: 95mm; }
+.q-terms-title { font-weight: 700; font-size: 9pt; margin-bottom: 2px; }
+.q-terms ol {
+    margin: 0; padding-inline-start: 5mm;
+    font-size: 9pt; line-height: 1.45;
+}
+.q-terms li {
+    padding-left: 2mm;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.q-signature {
+    flex: 0 0 70mm;
+    text-align: center;
+    font-size: 12pt;
+    align-self: flex-end;
+}
+.q-sig-line { border-top: 1px solid #000; margin-bottom: 4px; }
+.q-sig-name { font-weight: 700; }
+.q-sig-title { font-weight: 600; }
+
+
+/* ============================================================
+   Phase K.1 - Digital signature & stamp overlay (shared).
+   Each signature box gets .sig-box → position:relative so the
+   overlay can be absolutely anchored to it. Images sit ABOVE
+   the line: stamp on top, signature scribble in front of the
+   stamps lower edge crossing the line. Each instance comes
+   with its own random translate/rotate baked into inline style.
+   ============================================================ */
+.sig-box { position: relative; }
+
+.sig-overlay {
+    /* Height of the printed title + name under the line, measured from the box
+       bottom (2026-10-07). signing.render_overlay_html lands the stamp and the
+       signature INSIDE this block so a screenshot cannot take them clean. */
+    --sig-text-h: 10.2mm;
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 5;
+    overflow: visible;
+}
+.sig-stamp,
+.sig-hand {
+    position: absolute;
+    transform-origin: 50% 100%;
+    object-fit: contain;
+    /* The name shows through the ink, as under a real rubber stamp. */
+    mix-blend-mode: multiply;
+}
+.sig-stamp { z-index: 2; opacity: 0.95; }
+.sig-hand  { z-index: 3; }
+
+
+/* Phase L.4 - page number footer, dropped well below the doc footer so
+   the signature/payment block can't clash with it. */
+.page-number {
+    position: absolute;
+    bottom: 0mm;
+    left: 5mm;
+    font-size: 7.5pt;
+    color: #999;
+    font-family: "Aptos", "Segoe UI", "Tahoma", sans-serif;
+    letter-spacing: 0.02em;
+    z-index: 10;
+    pointer-events: none;
+}

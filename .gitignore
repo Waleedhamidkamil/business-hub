@@ -1,0 +1,55 @@
+# Dev residue & scratch (catalogued in docs/10-SCRATCH-LEFTOVERS.md)
+_*.py
+_*.js
+_*.png
+_refs/
+jsons ani/
+graphify-out/
+graphify-out.zip
+
+# Caches / IDE / test workspaces (regenerated)
+__pycache__/
+*.pyc
+.vs/
+.test-work/
+.worktrees/
+
+# Regenerated outputs & timestamped backups
+data/_*.pdf
+data/_*.html
+data/*.db.bak-*
+data/profiles/*/_*.pdf
+data/profiles/*/_*.html
+data/*.db-journal
+data/profile-migration.lock
+
+# API keys. data/settings.json is TRACKED, so nothing secret may live there.
+data/secrets.json
+tests/tmp*/
+
+# Generated document output & scratch captures (not source)
+outputs/
+generated_letters/
+tmp/
+TT1-*.png
+base-plates-annotated.png
+
+# Signatures and company stamp (2026-10-07). Kept on this PC and in its profile
+# backups only - never in git, where anyone with access to the repository could
+# take the original images. Older commits still contain them until the history
+# is rewritten.
+data/profiles/*/assets/sigs/
+static/sigs/
+# SQLite WAL side files (multi-user, 2026-10-22). Checkpoint before committing data:
+*.db-wal
+*.db-shm
+
+# Office server (2026-10-23): accounts, sessions, logs, uploads, per-person temp - never in git
+data/server/
+data/users/
+data/logs/
+
+# Local agent/project metadata
+.codex/
+AGENT-BOARD.md
+

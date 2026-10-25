@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>{{ dn.dn_no or 'Delivery Note' }}</title>
+{% if inline_css %}<style>{{ css_text|safe }}</style>{% else %}<link rel="stylesheet" href="{{ css_href }}">{% endif %}
+<style>
+.esh-dn-page { padding-bottom: 0; }
+.esh-dn-table tbody tr { height: var(--esh-row-mm, 8mm); }
+.esh-dn-table.esh-table--autofit tbody tr { height: auto; }
+.esh-dn-grand-row td {
+    height: 11mm;
+    border-top: 1.2px solid var(--esh-brand);
+    background: #fff3f3;
+    font-weight: 700;
+}
+.esh-dn-grand-row .esh-dn-grand-words { font-style: italic; font-weight: 500; }
+.esh-dn-grand-row .esh-dn-grand-amount { color: var(--esh-brand); font-size: 9pt; }
+.esh-dn-closing-zone {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 26mm;
+    box-sizing: border-box;
+    min-height: 20mm;
+    padding: 0;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+.esh-dn-closing {
+    margin: 0 0 2mm;
+    color: #292a2d;
+    font-size: 8pt;
+    font-weight: 700;
+    text-align: center;
+}
+.esh-dn-signatures {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22mm;
+    min-height: 10mm;
+}
+.esh-dn-signature {
+    position: relative;
+    align-self: end;
+    min-height: 9mm;
+    text-align: center;
+}
+.esh-dn-signature-line { border-top: .8px solid #d8dadd; margin-bottom: 1.2mm; }
+.esh-dn-signature-label { font-size: 7.5pt; font-weight: 700; }
+</style>
+</head>
+<body class="esh-document esh-dn-document"
+      data-document-family="eshraqat"
+      data-document-type="dn"
+      style="--esh-brand: {{ brand }};">
+{% import 'eshraqat/_components.html' as esh with context %}
+
+{% for page in pages %}
+<section class="esh-page esh-dn-page{% if not loop.last %} page-break{% endif %}"
+         data-page-role="{% if page.show_header and page.show_footer %}single{% elif page.show_header %}header{% elif page.show_footer %}footer{% else %}body{% endif %}">
+    {% if page.show_header %}
+    {{ esh.header() }}
+    {{ esh.meta_grid(meta_rows) }}
+    {% endif %}
+
+    <table class="esh-table esh-dn-table{% if autofit %} esh-table--autofit{% endif %}"
+           style="--esh-row-mm: {{ page.row_min_mm if page.row_min_mm else 8 }}mm;{% if page.fill_table %} height: {{ page.table_area_mm }}mm;{% endif %}">
+        {{ esh.table_header(columns) }}
+        <tbody>
+            {% for row in page.display_rows %}
+            <tr>
+                {% for cell in row %}<td class="al-{{ cell.align }}">{{ cell.val }}</td>{% endfor %}
+            </tr>
+            {% endfor %}
+
+            {% if grand_total and page.show_footer %}
+            <tr class="esh-dn-grand-row">
+                <td colspan="{{ grand_total.label_span + grand_total.words_span }}" class="al-center esh-dn-grand-words">{{ grand_total.words }}</td>
+                <td colspan="{{ grand_total.amount_span }}" class="al-center esh-dn-grand-amount">{{ grand_total.amount }}</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+
+    {% if page.show_footer %}
+    <div class="esh-dn-closing-zone">
+        <div class="esh-dn-signatures">
+            <div class="esh-dn-signature" data-signing-slot="recipient-manual">
+                <div class="esh-dn-signature-line"></div>
+                <div class="esh-dn-signature-label">{{ company.recipient_label }}</div>
+            </div>
+        </div>
+    </div>
+    {{ esh.footer() }}
+    {% endif %}
+
+    {{ esh.page_number(page.page_index, page.total_pages) }}
+</section>
+{% endfor %}
+
+</body>
+</html>

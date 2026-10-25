@@ -1,0 +1,272 @@
+/* =========================================================
+   PO document styles - calibrated to ABRAJ PO.xlsx exactly:
+   - Brand color #002060
+   - Arabic: Arial 12pt bold (header), 16pt bold (title), 14pt (meta/table headers)
+   - English header: Aptos/Calibri 10pt
+   - RTL flow throughout
+   - Signature block fixed near the bottom-left of each page
+   ========================================================= */
+
+@page {
+    size: A4;
+    margin: 10mm 10mm 10mm 10mm;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    font-family: "Arial", "Tahoma", sans-serif;
+    color: #000;
+    background: #fff;
+}
+
+.po-document { direction: rtl; }
+
+/* Each PO page is forced to fill a full printable A4 page so that the
+   absolutely-positioned signature lands at the same spot on every page,
+   regardless of how many table rows are filled. */
+.po-page {
+    position: relative;
+    box-sizing: border-box;
+    width: 190mm;
+    min-height: 277mm;        /* A4 297 - 2*10mm margins */
+    margin: 0 auto;
+    page-break-after: always;
+}
+.po-page:last-child { page-break-after: auto; }
+
+/* 2026-07-29 - a PO is ONE document over N pages. Continuation pages carry no
+   logo header/title/meta (page 1 only) and no signature (last page only), so
+   the table starts flush at the top. `paginate_po` measures this as
+   PO_CONT_TOP_MM = 0 - if you add spacing here, update that constant too. */
+.po-page--cont { padding-top: 0; }
+
+/* ---------- header ---------- */
+.po-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 0 6px 0;
+    border-bottom: 1px solid #888;
+}
+.hdr-ar, .hdr-en, .hdr-logo { flex: 1 1 0; }
+.hdr-ar {
+    text-align: right;
+    direction: rtl;
+    font-family: "Arial", "Tahoma", sans-serif;
+    font-size: 12pt;
+    font-weight: bold;
+    color: #002060;
+    line-height: 1.4;
+}
+.hdr-en {
+    text-align: left;
+    direction: ltr;
+    font-family: "Aptos", "Calibri", "Segoe UI", sans-serif;
+    font-size: 10pt;
+    color: #002060;
+    line-height: 1.35;
+}
+.hdr-logo { text-align: center; }
+.hdr-logo img { max-height: 95px; max-width: 180px; }
+.logo-placeholder {
+    width: 150px; height: 80px; margin: 0 auto;
+    border: 1px dashed #888;
+    display: flex; align-items: center; justify-content: center;
+    color: #888; font-size: 10pt;
+}
+
+/* ---------- title ---------- */
+.po-title {
+    text-align: center;
+    color: #002060;
+    font-size: 16pt;
+    font-weight: bold;
+    margin: 10px 0 10px 0;
+}
+
+/* ---------- meta row (date + po no) ---------- */
+.po-meta {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin: 6px 30px 12px 30px;
+    font-size: 14pt;
+}
+.meta-cell {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 14px;
+}
+.meta-label { color: #000; }
+.meta-value { min-width: 100px; text-align: center; }
+
+/* ---------- items table ---------- */
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 12pt;
+}
+.items-table th,
+.items-table td {
+    border: 1px solid #000;
+    padding: 6px 4px;
+    text-align: center;
+    vertical-align: middle;
+    word-wrap: break-word;
+    /* THE ROW HEIGHT IS THE SETTING (2026-09-05). This was a hard `height:26px`
+       which, with content-box, added the 6px padding and the border on top and
+       rendered 10.32mm - while the paginator booked config.TABLE_MIN_ROW_MM,
+       then 7mm. A third of every row went unbooked, so A-84 planned 27 rows
+       onto a sheet that holds 21 and the PDF came out a page longer than the
+       "Page 1 of 2" footers it had already printed.
+
+       `border-box` is what makes the number honest: padding and border are now
+       INSIDE the height, so the millimetres in PO settings are the millimetres
+       on the page and the estimate cannot drift from the render. Change this
+       rule and you must change `estimate_row_height_mm` with it. */
+    box-sizing: border-box;
+    height: var(--po-row-mm, 10.3mm);
+    /* Preserve newlines that the user typed in PO row textareas. */
+    white-space: pre-wrap;
+}
+.items-table thead th {
+    /* The <thead> has its OWN reserve (config.TABLE_HEADER_MM) and must not
+       follow --po-row-mm: the rule above matches `th` as well, so without this
+       a taller row setting silently grew the header too while the paginator
+       still booked 12mm - 20mm rows overflowed for exactly that reason. */
+    height: var(--po-head-mm, 12mm);
+    font-size: 14pt;
+    font-weight: bold;
+    background: #ffffff;
+    color: #000;
+}
+
+/* Column widths derived from xlsx column widths.
+   Order matches HTML source: ت (right) ... [صورة] ... السعر (left) in RTL.
+   صورة sits between لشركة and السعر, and only when the PO has pictures. */
+.col-idx     { width: 4.7%; }
+.col-name    { width: 23.9%; }
+.col-desc    { width: 20.0%; }
+.col-unit    { width: 10.2%; }
+.col-qty     { width: 8.0%; }
+.col-company { width: 16.7%; }
+.col-price   { width: 16.6%; }
+
+/* 2026-08-05 - optional picture column. Only in the markup when at least one
+   row carries an image (pdf_generator.any_row_has_image), because an
+   always-present picture column would spend a fifth of an already tight
+   7-column Arabic table printing blanks on every ordinary order.
+
+   When it IS present the other columns are narrowed here rather than by the
+   width scaler, so a PO with pictures still sums to 100%. The `has-images`
+   class is set from the same flag that adds the cells. */
+.col-image   { width: 11.0%; }
+.items-table.has-images .col-name    { width: 20.0%; }
+.items-table.has-images .col-desc    { width: 17.0%; }
+.items-table.has-images .col-unit    { width:  9.0%; }
+.items-table.has-images .col-qty     { width:  7.0%; }
+.items-table.has-images .col-company { width: 14.7%; }
+/* 4.7 + 20 + 11 + 17 + 9 + 7 + 14.7 + 16.6 = 100 */
+
+/* The cap that keeps the estimate honest. `--po-img-mm` comes from
+   PO_IMAGE_ROW_MIN_MM via po_page.html; without a hard max-height a tall
+   photo makes the row far bigger than the paginator reserved and the table
+   overruns the signature block. */
+.items-table td.col-image {
+    padding: 1mm;
+    text-align: center;
+    vertical-align: middle;
+    max-height: var(--po-img-mm, 22mm);
+    overflow: hidden;
+}
+.items-table td.col-image img {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    max-height: calc(var(--po-img-mm, 22mm) - 2mm);
+    object-fit: contain;
+}
+
+/* Rule #7: empty rows are hidden so the table only shows used rows. */
+.items-table tbody tr.empty-row { display: none; }
+
+/* Auto-fit: each row hugs its text exactly - no fixed height, tight padding. */
+.items-table.items-table--autofit tbody td {
+    height: auto;
+    padding-top: 2px; padding-bottom: 2px;
+    vertical-align: middle;
+    line-height: 1.25;
+}
+
+/* ---------- signature (fixed near bottom-left of each page) ---------- */
+.signature {
+    position: absolute;
+    bottom: 10mm;            /* lowered another 20% from 13mm (total 55% below original 22mm) */
+    left: 15mm;
+    width: 70mm;
+    text-align: center;
+    font-size: 12pt;
+}
+.sig-line {
+    border-top: 1.2px solid #000;
+    margin-bottom: 4px;
+}
+.sig-title {
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+.sig-name {
+    font-weight: bold;
+}
+
+
+/* ============================================================
+   Phase K.1 - Digital signature & stamp overlay (shared).
+   Each signature box gets .sig-box → position:relative so the
+   overlay can be absolutely anchored to it. Images sit ABOVE
+   the line: stamp on top, signature scribble in front of the
+   stamps lower edge crossing the line. Each instance comes
+   with its own random translate/rotate baked into inline style.
+   ============================================================ */
+.sig-box { position: relative; }
+
+.sig-overlay {
+    /* Height of the printed title + name under the line, measured from the box
+       bottom (2026-10-07). signing.render_overlay_html lands the stamp and the
+       signature INSIDE this block so a screenshot cannot take them clean. */
+    --sig-text-h: 10mm;
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 5;
+    overflow: visible;
+}
+.sig-stamp,
+.sig-hand {
+    position: absolute;
+    transform-origin: 50% 100%;
+    object-fit: contain;
+    /* The name shows through the ink, as under a real rubber stamp. */
+    mix-blend-mode: multiply;
+}
+.sig-stamp { z-index: 2; opacity: 0.95; }
+.sig-hand  { z-index: 3; }
+
+
+/* Phase L.4 - page number footer, dropped well below the doc footer so
+   the signature/payment block can't clash with it. */
+.page-number {
+    position: absolute;
+    bottom: 0mm;
+    left: 5mm;
+    font-size: 7.5pt;
+    color: #999;
+    font-family: "Aptos", "Segoe UI", "Tahoma", sans-serif;
+    letter-spacing: 0.02em;
+    z-index: 10;
+    pointer-events: none;
+}

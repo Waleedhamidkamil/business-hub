@@ -1,0 +1,308 @@
+@page {
+    size: A4;
+    margin: 8.8mm 8.75mm 15.9mm;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background: #fff;
+    color: #292a2d;
+    font-family: "Aptos", "Segoe UI", Arial, sans-serif;
+    font-size: 9pt;
+}
+
+.esh-document { direction: ltr; }
+.esh-document.rtl { direction: rtl; }
+.esh-page {
+    position: relative;
+    box-sizing: border-box;
+    width: 192.5mm;
+    /* Printable A4 height is 297 - 8.8(top) - 15.9(bottom) = 272.3mm. Keep the
+       page box a couple mm SHORT of that so the absolutely-positioned page
+       number (below) stays inside the printable area - a full 272.3mm box left
+       zero room and spilled the page number onto a blank second physical page. */
+    min-height: 270mm;
+    margin: 0 auto;
+    padding-bottom: 20mm;
+}
+.esh-page.page-break { page-break-after: always; }
+
+.esh-header {
+    display: grid;
+    grid-template-columns: 54% 46%;
+    align-items: center;
+    min-height: 31mm;
+    border-bottom: 1.5px solid #8f1730;
+    margin-bottom: 3mm;
+}
+.esh-header-logo { text-align: left; }
+.esh-header-logo img {
+    display: block;
+    width: 53mm;
+    height: 27mm;
+    object-fit: contain;
+    object-position: left center;
+}
+.esh-header-identity { text-align: center; line-height: 1.22; }
+.esh-company-name { color: #292a2d; font-size: 15pt; font-weight: 700; }
+.esh-company-line { color: #6e7379; font-size: 8pt; }
+.esh-document-title {
+    color: #1c1d20;               /* Quotation - black (default) */
+    font-size: 14pt;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-top: 1.5mm;
+}
+/* Per-document-type title colours (user): Quotation black, DN red, Invoice blue. */
+.esh-dn-document .esh-document-title      { color: #8f1730; }   /* Delivery Note - red */
+.esh-invoice-document .esh-document-title { color: #1f4e8f; }   /* Invoice - blue */
+
+.esh-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 10mm;
+    row-gap: .4mm;
+    margin: 0 0 3mm;
+}
+.esh-meta-item {
+    display: grid;
+    grid-template-columns: 34% 66%;
+    align-items: center;
+    min-height: 5.7mm;
+}
+.esh-meta-wide { grid-column: 1 / -1; grid-template-columns: 17% 83%; }
+.esh-meta-label {
+    color: #6e7379;
+    font-size: 7.5pt;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+.esh-meta-value {
+    min-width: 0;
+    color: #292a2d;
+    font-size: 8.5pt;
+    overflow-wrap: anywhere;
+}
+
+.esh-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    color: #292a2d;
+    font-size: 7.5pt;
+}
+.esh-table thead { display: table-header-group; }
+.esh-table tr { break-inside: avoid; page-break-inside: avoid; }
+.esh-table th {
+    height: 7mm;
+    padding: 1.2mm 1mm;
+    border-top: 1.5px solid #8f1730;
+    border-bottom: 1.5px solid #8f1730;
+    background: #ffd9d9;
+    font-size: 7pt;
+    font-weight: 800;
+    text-transform: uppercase;
+    white-space: normal;
+    line-height: 1.15;
+}
+.esh-table td {
+    border-bottom: .6px solid #d8dadd;
+    padding: 1.4mm 1mm;
+    vertical-align: middle;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.esh-table tbody tr { height: var(--esh-row-mm, 11mm); }
+.esh-table.esh-table--autofit tbody tr { height: auto; }
+.esh-table .al-left { text-align: left; }
+.esh-table .al-center { text-align: center; }
+.esh-table .al-right { text-align: right; }
+.esh-table td.cell-image { padding: 1mm; overflow: hidden; }
+.esh-table td.cell-image img {
+    display: block;
+    max-width: 100%;
+    max-height: 20mm;
+    margin: 0 auto;
+    object-fit: contain;
+}
+
+.esh-closing-zone {
+    margin-top: 3mm;
+    break-inside: avoid;
+    page-break-inside: avoid;
+}
+.esh-amount-block {
+    display: grid;
+    /* fr units so the 6mm gap is subtracted BEFORE splitting - percentage
+       tracks (64%+36%=100%) + gap overflowed the box and clipped the
+       right-aligned totals off the page edge. */
+    grid-template-columns: 64fr 36fr;
+    gap: 6mm;
+    min-height: 20mm;
+}
+.esh-amount-words { line-height: 1.45; }
+.esh-closing-label {
+    padding-bottom: 1mm;
+    border-bottom: .6px solid #d8dadd;
+    color: #292a2d;
+    font-size: 8pt;
+    font-weight: 800;
+    text-transform: uppercase;
+    margin-bottom: 1mm;
+}
+.esh-muted { color: #6e7379; }
+.esh-total-list { align-self: start; }
+.esh-total-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 4mm;
+    min-height: 5.5mm;
+    align-items: center;
+    color: #6e7379;
+}
+.esh-total-row strong { color: #292a2d; }
+.esh-grand-total {
+    border-top: 1.2px solid #8f1730;
+    color: #292a2d;
+    font-size: 9.5pt;
+    font-weight: 800;
+}
+.esh-grand-total strong { color: #8f1730; }
+
+.esh-terms-signing {
+    display: grid;
+    grid-template-columns: 36% 18% 46%;
+    margin-top: 5mm;
+    min-height: 26mm;
+}
+/* Quotation only: lay the page out as a flex column so the terms + signature
+   block sits at the BOTTOM (just above the footer), like the Eshraqat design -
+   instead of floating high right under the totals. margin-top:auto absorbs the
+   free space and collapses to 0 on a full last page, so it never overlaps. */
+.esh-quote-document .esh-page { display: flex; flex-direction: column; }
+.esh-quote-document .esh-closing-zone { flex-shrink: 0; }
+.esh-quote-document .esh-page > .esh-table { flex-shrink: 0; }
+.esh-quote-document .esh-terms-signing { margin-top: auto; flex-shrink: 0; }
+.esh-terms { grid-column: 1; font-size: 7.5pt; line-height: 1.35; }
+.esh-terms ol { margin: 0; padding-left: 4mm; }
+.esh-signature { grid-column: 3; align-self: end; text-align: center; }
+.esh-signature-space { height: 16mm; }
+.esh-signature-line { border-top: .8px solid #d8dadd; margin-bottom: 1.4mm; }
+
+.esh-footer {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 2mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8mm;
+    min-height: 13mm;
+    padding-top: 1.5mm;
+    border-top: .6px solid #d8dadd;
+}
+.esh-footer-contact { color: #6e7379; font-size: 6.5pt; line-height: 1.5; }
+.esh-footer-contact div:first-child { text-decoration: underline; }
+.esh-footer-iso { width: 78mm; max-height: 11mm; object-fit: contain; object-position: right center; }
+.esh-page-number {
+    position: absolute;
+    left: 50%;
+    /* Inside the page box (was -4.5mm, which sat below the sheet and overflowed
+       onto a blank page). Sits within the 20mm bottom padding, below content. */
+    bottom: 2mm;
+    transform: translateX(-50%);
+    color: #8b8f94;
+    font-size: 6.5pt;
+}
+
+/* =========================================================================
+   PURCHASE ORDER - the Arabic / RTL member of the Eshraqat family (2026-08-09)
+   The other four documents stay English + LTR; everything below is scoped to
+   `.esh-po-document` so it cannot leak into them.
+
+   Layout contract (mirrors templates/po_page.html, the default PO skin):
+     header   logo RIGHT, Arabic identity + title LEFT
+     meta     التاريخ / رقم طلب الشراء stacked on the RIGHT
+     table    ت … السعر, RTL source order, optional صورة before السعر
+     closing  supplier RIGHT, signature LEFT
+     bottom   NO footer band - only "صفحة س من ص"
+   Geometry note: no footer means the 20mm bottom padding the other skins need
+   is dead space here, so the PO page reclaims it. `PO_ESH_USABLE_MM` in
+   pdf_generator is measured against THIS padding - change one, re-measure.
+   ========================================================================= */
+.esh-po-document .esh-page { padding-bottom: 10mm; }
+
+/* Pin the closing zone to the BOTTOM of the last page - the same flex-column
+   trick `.esh-quote-document` uses, and the same result templates/po_page.html
+   gets from
+   its absolutely-positioned `.signature`. Without it a 4-row PO prints its
+   signature (and the stamp overlay, which reaches ~13mm ABOVE the box) right
+   under the last table row, halfway up an otherwise empty page.
+   `margin-top: auto` absorbs the free space and collapses to 0 on a full last
+   page, so it can never push content off the sheet. */
+.esh-po-document .esh-page { display: flex; flex-direction: column; }
+.esh-po-document .esh-page > .esh-header,
+.esh-po-document .esh-page > .esh-meta,
+.esh-po-document .esh-page > .esh-table { flex-shrink: 0; }
+.esh-po-document .esh-closing-zone { margin-top: auto; flex-shrink: 0; }
+
+/* Header - logo first in RTL flow, so it lands on the right. */
+.esh-header-ar { grid-template-columns: 40% 60%; }
+.esh-header-ar .esh-header-logo { text-align: right; }
+.esh-header-ar .esh-header-logo img { object-position: right center; }
+.esh-header-ar .esh-company-name { font-size: 14pt; font-weight: 700; }
+.esh-header-ar .esh-company-line { color: #4c5157; font-size: 10pt; }
+.esh-header-ar .esh-document-title {
+    color: #8f1730;
+    font-size: 15pt;
+    text-transform: none;   /* Arabic has no case; uppercase is a no-op that
+                               only risks odd shaping in some renderers */
+}
+
+/* Meta - both cells stacked on the right, unlike the 2-up English grid. */
+.esh-po-document .esh-meta { grid-template-columns: 52%; margin-bottom: 4mm; }
+.esh-po-document .esh-meta-label { font-size: 9pt; text-transform: none; }
+.esh-po-document .esh-meta-value { font-size: 9.5pt; font-weight: 700; }
+
+/* Table - Arabic needs more than the 7.5pt the English skins use, and an
+   8-column order table needs column separators to be scannable. Logical
+   `inline-start` so the hairline lands on the RIGHT edge of each cell, which
+   is where the previous column is in RTL. */
+.esh-po-document .esh-table { font-size: 9pt; }
+.esh-po-document .esh-table th { font-size: 9pt; }
+.esh-po-document .esh-table th + th,
+.esh-po-document .esh-table td + td { border-inline-start: .6px solid #e6e8ea; }
+
+/* Picture column. `--po-img-mm` comes from PO_IMAGE_ROW_MIN_MM via the
+   template; without this hard cap a tall photo makes the row far bigger than
+   the paginator reserved and the table runs into the closing zone. Same
+   contract as `.items-table td.col-image` in po_styles.css. */
+.esh-po-document .items-table td.col-image {
+    padding: 1mm;
+    max-height: var(--po-img-mm, 22mm);
+    overflow: hidden;
+}
+.esh-po-document .items-table td.col-image img {
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+    max-height: calc(var(--po-img-mm, 22mm) - 2mm);
+    object-fit: contain;
+}
+
+/* Closing zone - supplier on the right (grid column 1 = right in RTL),
+   signature on the left, matching the default skin's bottom-left signature. */
+.esh-po-document .esh-terms { font-size: 9.5pt; }
+.esh-po-document .esh-closing-label { font-size: 9pt; text-transform: none; }
+.esh-po-document .esh-signature strong { font-size: 9.5pt; }
+.esh-po-document .esh-page-number { font-size: 8pt; }
+
+.sig-box { position: relative; }
+/* --sig-text-h: the one-line signatory caption the stamp and the
+   signature must run into (signing.render_overlay_html, 2026-10-07). */
+.sig-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 5; --sig-text-h: 4.2mm; }
+.sig-stamp, .sig-hand { position: absolute; object-fit: contain; transform-origin: 50% 100%; mix-blend-mode: multiply; }
+.sig-stamp { z-index: 2; opacity: .95; }
+.sig-hand { z-index: 3; }

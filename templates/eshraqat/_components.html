@@ -1,0 +1,108 @@
+{% macro header() -%}
+<header class="esh-header" dir="ltr">
+    <div class="esh-header-logo">
+        <img src="{{ logo_data_uri }}" alt="Eshraqat Albadr">
+    </div>
+    <div class="esh-header-identity">
+        {% for line in identity.name_lines %}
+        <div class="{% if loop.first %}esh-company-name{% else %}esh-company-line{% endif %}">{{ line }}</div>
+        {% endfor %}
+        <div class="esh-document-title">{{ document_title }}</div>
+    </div>
+</header>
+{%- endmacro %}
+
+{% macro header_ar(title='') -%}
+{# 2026-08-09 - Arabic/RTL twin of header() for the Eshraqat PO skin. Logo first
+   so RTL flow puts it on the RIGHT; the Arabic identity block takes the LEFT
+   column. Same .esh-header box (min-height 31mm) as the English header, so the
+   measured PO_ESH_HEADER_MM reserve in pdf_generator still applies. #}
+<header class="esh-header esh-header-ar" dir="rtl">
+    <div class="esh-header-logo">
+        <img src="{{ logo_data_uri }}" alt="{{ identity.name_lines_ar[0] if identity.name_lines_ar else '' }}">
+    </div>
+    <div class="esh-header-identity">
+        {% for line in identity.name_lines_ar %}
+        <div class="{% if loop.first %}esh-company-name{% else %}esh-company-line{% endif %}">{{ line }}</div>
+        {% endfor %}
+        {% if title %}<div class="esh-document-title">{{ title }}</div>{% endif %}
+    </div>
+</header>
+{%- endmacro %}
+
+{% macro meta_grid(rows) -%}
+<div class="esh-meta">
+    {% for row in rows %}
+    <div class="esh-meta-item{% if row.wide %} esh-meta-wide{% endif %}">
+        <div class="esh-meta-label">{{ row.label }}</div>
+        <div class="esh-meta-value">{{ row.value or '' }}</div>
+    </div>
+    {% endfor %}
+</div>
+{%- endmacro %}
+
+{% macro table_header(columns) -%}
+<thead>
+    <tr>
+        {% for column in columns %}
+        <th class="al-{{ column.align or 'center' }}" style="width: {{ column.width }}%;">{{ column.head }}</th>
+        {% endfor %}
+    </tr>
+</thead>
+{%- endmacro %}
+
+{% macro amount_totals(rows, words='', currency='USD') -%}
+<div class="esh-amount-block">
+    <div class="esh-amount-words">
+        <div class="esh-closing-label">Amount in words</div>
+        <div><span class="esh-muted">Currency:</span> {{ currency }}</div>
+        <strong>{{ words }}</strong>
+    </div>
+    <div class="esh-total-list">
+        {% for row in rows %}
+        <div class="esh-total-row{% if row.grand %} esh-grand-total{% endif %}">
+            <span>{{ row.label }}</span><strong>{{ row.value }}</strong>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{%- endmacro %}
+
+{% macro terms_signing(terms, signature_html='', signature_label='Authorized Signatory') -%}
+<div class="esh-terms-signing">
+    {# No terms => drop the whole block (heading + empty list). The signature is
+       pinned to grid-column 3, so it stays put without a placeholder. #}
+    {% if terms %}
+    <div class="esh-terms">
+        <div class="esh-closing-label">Terms &amp; Conditions</div>
+        <ol>{% for term in terms %}<li>{{ term }}</li>{% endfor %}</ol>
+    </div>
+    {% endif %}
+    <div class="esh-signature sig-box">
+        {{ signature_html|safe }}
+        <div class="esh-signature-space"></div>
+        <div class="esh-signature-line"></div>
+        <strong>{{ signature_label }}</strong>
+    </div>
+</div>
+{%- endmacro %}
+
+{% macro footer() -%}
+<footer class="esh-footer" dir="ltr">
+    <div class="esh-footer-contact">
+        <div>{{ identity.website }}</div>
+        <div>{{ identity.emails | join(' | ') }}</div>
+    </div>
+    {% if iso_data_uri %}<img class="esh-footer-iso" src="{{ iso_data_uri }}" alt="ISO certifications">{% endif %}
+</footer>
+{%- endmacro %}
+
+{% macro page_number(index, total) -%}
+<div class="esh-page-number" dir="ltr">Page {{ index }} of {{ total }}</div>
+{%- endmacro %}
+
+{% macro page_number_ar(index, total) -%}
+{# Arabic twin of page_number(). Used by the RTL PO skin, which prints no
+   footer band - this is the only thing left at the bottom of the page. #}
+<div class="esh-page-number" dir="rtl">صفحة {{ index }} من {{ total }}</div>
+{%- endmacro %}

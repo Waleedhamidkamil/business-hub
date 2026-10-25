@@ -1,0 +1,2236 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>PO Tool - Abraj Al Bader</title>
+<link rel="stylesheet" href="../static/app_styles.css">
+<link rel="stylesheet" href="../static/item_review_popup.css">
+<link rel="stylesheet" href="../static/master_doctor.css">
+<link rel="stylesheet" href="../static/cropper.min.css">
+<link rel="stylesheet" href="../static/dark.css">
+<link rel="stylesheet" href="../static/client_master.css">
+<link rel="stylesheet" href="../static/gate.css">
+<script>
+  /* Phase X.18 - apply the cached theme before first paint; app.js reconciles with settings.json after bridge boot. */
+  (function () {
+    try {
+      if (localStorage.getItem("abraj_theme") === "dark")
+        document.documentElement.setAttribute("data-theme", "dark");
+    } catch (e) { /* ignore */ }
+  })();
+</script>
+<style>
+  /* Phase X.18 - theme segmented control (token-based: works in both themes). */
+  .theme-seg { display:inline-flex; gap:4px; padding:4px; border:1px solid var(--border);
+    border-radius:12px; background:var(--surface-sunk); }
+  .theme-seg-opt { display:inline-flex; align-items:center; gap:7px; padding:8px 16px; border:0;
+    border-radius:9px; background:transparent; color:var(--text-muted); font-weight:600;
+    font-size:14px; cursor:pointer; font-family:inherit; transition:background 140ms ease, color 140ms ease; }
+  .theme-seg-opt:hover { color:var(--text); }
+  .theme-seg-opt.active { background:var(--surface); color:var(--navy); box-shadow:var(--shadow-xs); }
+</style>
+</head>
+<body>
+
+<!-- ===================== THE GATE (2026-10-02, static/gate.js) =====================
+     Two doors over the whole app: company switch and lock. Must stay the FIRST
+     thing in <body> with its fill script right after it, so a reload in the
+     middle of a company switch paints the doors shut on its very first frame.
+     Each door carries half of the seal (the company logo in a ring). -->
+<div id="gate" aria-hidden="true" role="dialog" aria-label="Business Hub">
+    <div class="gate-door l">
+        <div class="gate-brand">
+            <div class="gate-name">Business Hub</div>
+            <div class="gate-co" id="gateCo"></div>
+        </div>
+        <div class="gate-seal"><img alt="" src=""><i class="gate-orbit" aria-hidden="true"></i></div>
+    </div>
+    <div class="gate-door r">
+        <div class="gate-seal"><img alt="" src=""><i class="gate-orbit" aria-hidden="true"></i></div>
+        <div class="gate-in" id="gateIn"></div>
+    </div>
+</div>
+<script>
+  (function () {
+    try {
+      var s = JSON.parse(sessionStorage.getItem("bh-gate") || "null");
+      if (!s || s.mode !== "switch") return;
+      var g = document.getElementById("gate");
+      g.classList.add("no-anim");
+      document.documentElement.classList.add("gate-closed");
+      document.documentElement.style.setProperty("--gate-accent", s.accent || "#1F3864");
+      g.style.setProperty("--gate-sweep", Math.min(1, (s.stage || 0) / 3) * 360 + "deg");
+      var seals = g.querySelectorAll(".gate-seal img");
+      for (var i = 0; i < seals.length; i++) seals[i].src = s.logo || "";
+      document.getElementById("gateCo").textContent = s.label || "";
+      document.getElementById("gateIn").innerHTML = s.html || "";
+      g.setAttribute("aria-hidden", "false");
+    } catch (e) { /* no gate this time */ }
+  })();
+</script>
+
+<!-- ===================== TOPBAR ===================== -->
+<header class="topbar">
+    <button id="btnHome" class="home-btn" title="الرئيسية / Home" aria-label="Home" hidden>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+    </button>
+    <div class="brand" id="brandText">Business Hub</div>
+    <!-- Unified document status cluster - shown only while an editor is active.
+         One home for Signed / Edit mode / Unsaved across every editor. -->
+    <div class="doc-status" id="docStatus" hidden dir="ltr">
+        <span class="sign-chip not-signed" id="docSignChip">Not signed</span>
+        <span class="fulfill-chip" id="docFulfillChip" hidden></span>
+        <span class="mode-chip" id="docModeChip" hidden>Edit mode</span>
+        <span class="mode-chip unsaved-chip" id="docUnsavedChip" hidden>Unsaved</span>
+    </div>
+    <div class="spacer"></div>
+
+    <!-- PO action group -->
+    <div class="actions" id="poActions" hidden>
+        <button id="btnPoBack" class="editor-back-btn" title="رجوع" hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            <span>رجوع</span>
+        </button>
+        <span class="actions-divider editor-back-div" hidden></span>
+        <button id="btnNew" class="ghost doc-flow-btn" title="Ctrl+N">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>
+            <span>جديد</span>
+        </button>
+        <button id="btnPoStay" class="secondary doc-flow-btn editor-save-btn" title="Save and keep editing (Ctrl+S)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+            </svg>
+            <span class="label">حفظ</span>
+        </button>
+        <button id="btnPoMakeDn" class="ghost doc-flow-btn" title="Create a Delivery Note from this Purchase Order" data-short="DN">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+            </svg>
+            <span>Make DN</span>
+        </button>
+        <button id="btnPoMakeInv" class="ghost doc-flow-btn" title="Create an Invoice from this Purchase Order" data-short="Invoice">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="13" y2="13"/><line x1="7" y1="17" x2="11" y2="17"/>
+            </svg>
+            <span>Make invoice</span>
+        </button>
+        <span class="actions-divider"></span>
+        <button id="btnPreview" class="secondary action-break" title="Ctrl+P">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span class="label">معاينة PDF</span>
+        </button>
+        <button id="btnPoSign" class="ghost sig-btn" title="Sign this document with your saved signature + stamp">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 19h-16"/><path d="M4 15l8-8 4 4-8 8H4z"/><path d="M14 6l3-3a1.414 1.414 0 0 1 2 2l-3 3"/>
+            </svg>
+            <span>Sign</span>
+        </button>
+        <button id="btnPoWorkflow" class="ghost workflow-btn" title="Track delivery and payment" aria-label="Open document workflow" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect width="6" height="6" x="3" y="3" rx="1"/><rect width="6" height="6" x="15" y="15" rx="1"/><path d="M6 9v4a2 2 0 0 0 2 2h7"/><path d="m12 12 3 3-3 3"/>
+            </svg>
+            <span>Workflow</span>
+        </button>
+        <button id="btnPoFitCols" class="ghost fitcols-btn action-break" title="ملاءمة عرض الأعمدة للمحتوى تلقائياً" aria-label="ملاءمة عرض الأعمدة للمحتوى">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="7 8 3 12 7 16"/><polyline points="17 8 21 12 17 16"/><line x1="3" y1="12" x2="21" y2="12"/>
+            </svg>
+            <span>ملاءمة</span>
+        </button>
+        <button id="btnPoAutofit" class="ghost autofit-toggle" title="Auto-fit row height for this PO" aria-pressed="false">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3v18"/><polyline points="8 7 12 3 16 7"/><polyline points="8 17 12 21 16 17"/>
+            </svg>
+            <span>ملاءمة</span>
+        </button>
+        <button id="btnPoSettings" class="icon-btn ghost action-break" title="إعدادات طلب الشراء" aria-label="إعدادات طلب الشراء">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Quotation action group -->
+    <div class="actions" id="quoteActions" hidden dir="ltr">
+        <button id="btnQBack" class="editor-back-btn" title="Back" hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            <span>Back</span>
+        </button>
+        <span class="actions-divider editor-back-div" hidden></span>
+        <button id="btnQTypes" class="warm-red" title="Back to quote types">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+            <span>Types</span>
+        </button>
+        <span class="actions-divider"></span>
+        <button id="btnQNew" class="ghost doc-flow-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>
+            <span>New</span>
+        </button>
+        <button id="btnQStay" class="secondary doc-flow-btn editor-save-btn" title="Save and keep editing (Ctrl+S)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+            </svg>
+            <span>Save</span>
+        </button>
+        <button id="btnQMasterFill" class="ghost doc-flow-btn mdf-toolbar-btn" title="Find matching items in Master Data" data-short="Master">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/><path d="M7.5 10.5h6"/><path d="M10.5 7.5v6"/>
+            </svg>
+            <span>Master Data</span>
+        </button>
+        <span class="actions-divider"></span>
+        <button id="btnQPreview" class="secondary action-break">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span>Preview</span>
+        </button>
+        <button id="btnQSign" class="ghost sig-btn" title="Sign this document">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 19h-16"/><path d="M4 15l8-8 4 4-8 8H4z"/><path d="M14 6l3-3a1.414 1.414 0 0 1 2 2l-3 3"/>
+            </svg>
+            <span>Sign</span>
+        </button>
+        <button id="btnQFitCols" class="ghost fitcols-btn action-break" title="Fit column widths to the content (like Excel AutoFit)" aria-label="Fit columns to content">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="7 8 3 12 7 16"/><polyline points="17 8 21 12 17 16"/><line x1="3" y1="12" x2="21" y2="12"/>
+            </svg>
+            <span>Fit</span>
+        </button>
+        <button id="btnQAutofit" class="ghost autofit-toggle" title="Auto-fit row height for this quotation" aria-pressed="false">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3v18"/><polyline points="8 7 12 3 16 7"/><polyline points="8 17 12 21 16 17"/>
+            </svg>
+            <span>Fit</span>
+        </button>
+        <button id="btnQTypeSettings" class="icon-btn ghost action-break" title="Settings for this quotation type" aria-label="Type settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Delivery Note action group -->
+    <div class="actions" id="dnActions" hidden dir="ltr">
+        <button id="btnDnBack" class="editor-back-btn" title="Back" hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            <span>Back</span>
+        </button>
+        <span class="actions-divider editor-back-div" hidden></span>
+        <button id="btnDnNew" class="ghost doc-flow-btn" title="Ctrl+N">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>
+            <span>New</span>
+        </button>
+        <button id="btnDnStay" class="secondary doc-flow-btn editor-save-btn" title="Save and keep editing (Ctrl+S)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+            </svg>
+            <span class="label">Save</span>
+        </button>
+        <button id="btnDnImport" class="ghost doc-flow-btn" title="Import from a saved Quotation" data-short="Import">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span>Import quotation</span>
+        </button>
+        <button id="btnDnInvoice" class="ghost doc-flow-btn" title="Create an Invoice from this Delivery Note" data-short="Invoice">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="13" y2="13"/><line x1="7" y1="17" x2="11" y2="17"/>
+            </svg>
+            <span>Make invoice</span>
+        </button>
+        <button id="btnDnMasterFill" class="ghost doc-flow-btn mdf-toolbar-btn" title="Find matching items in Master Data" data-short="Master">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/><path d="M7.5 10.5h6"/><path d="M10.5 7.5v6"/>
+            </svg>
+            <span>Master Data</span>
+        </button>
+        <span class="actions-divider"></span>
+        <button id="btnDnPreview" class="secondary action-break" title="Ctrl+P">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span class="label">Preview</span>
+        </button>
+        <button id="btnDnSign" class="ghost sig-btn" title="Sign this document">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 19h-16"/><path d="M4 15l8-8 4 4-8 8H4z"/><path d="M14 6l3-3a1.414 1.414 0 0 1 2 2l-3 3"/>
+            </svg>
+            <span>Sign</span>
+        </button>
+        <button id="btnDnSignedCopy" class="ghost signed-copy-btn" title="Attach the signed copy the client sent back" aria-label="Signed copy" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+            </svg>
+            <span>Signed copy</span>
+        </button>
+        <button id="btnDnWorkflow" class="ghost workflow-btn" title="Track delivery and payment" aria-label="Open document workflow" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect width="6" height="6" x="3" y="3" rx="1"/><rect width="6" height="6" x="15" y="15" rx="1"/><path d="M6 9v4a2 2 0 0 0 2 2h7"/><path d="m12 12 3 3-3 3"/>
+            </svg>
+            <span>Workflow</span>
+        </button>
+        <button id="btnDnFitCols" class="ghost fitcols-btn action-break" title="Fit column widths to the content (like Excel AutoFit)" aria-label="Fit columns to content">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="7 8 3 12 7 16"/><polyline points="17 8 21 12 17 16"/><line x1="3" y1="12" x2="21" y2="12"/>
+            </svg>
+            <span>Fit</span>
+        </button>
+        <button id="btnDnAutofit" class="ghost autofit-toggle" title="Auto-fit row height for this delivery note" aria-pressed="false">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3v18"/><polyline points="8 7 12 3 16 7"/><polyline points="8 17 12 21 16 17"/>
+            </svg>
+            <span>Fit</span>
+        </button>
+        <button id="btnDnPrices" class="ghost prices-toggle" title="Show or hide prices on this delivery note" aria-pressed="false">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7H14a3.5 3.5 0 0 1 0 7H6"/>
+            </svg>
+            <span id="dnPricesLabel">Prices</span>
+        </button>
+        <input type="checkbox" id="dnIncludePrices" class="toolbar-state-input" hidden>
+        <button id="btnDnSettings" class="icon-btn ghost action-break" title="Delivery Note settings" aria-label="Delivery Note settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- Invoice action group -->
+    <div class="actions" id="invActions" hidden dir="ltr">
+        <button id="btnInvBack" class="editor-back-btn" title="Back" hidden>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            <span>Back</span>
+        </button>
+        <span class="actions-divider editor-back-div" hidden></span>
+        <button id="btnInvTypes" class="warm-red" title="Back to invoice types">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+            <span>Types</span>
+        </button>
+        <span class="actions-divider"></span>
+        <button id="btnInvNew" class="ghost doc-flow-btn" title="Ctrl+N">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>
+            <span>New</span>
+        </button>
+        <button id="btnInvStay" class="secondary doc-flow-btn editor-save-btn" title="Save and keep editing (Ctrl+S)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+            </svg>
+            <span class="label">Save</span>
+        </button>
+        <button id="btnInvImport" class="ghost doc-flow-btn" title="Import items from a saved DN or Quotation">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span>Import</span>
+        </button>
+        <button id="btnInvMasterFill" class="ghost doc-flow-btn mdf-toolbar-btn" title="Find matching items in Master Data" data-short="Master">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/><path d="M7.5 10.5h6"/><path d="M10.5 7.5v6"/>
+            </svg>
+            <span>Master Data</span>
+        </button>
+        <span class="actions-divider"></span>
+        <button id="btnInvPreview" class="secondary action-break" title="Ctrl+P">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span class="label">Preview</span>
+        </button>
+        <button id="btnInvSign" class="ghost sig-btn" title="Sign this document">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M20 19h-16"/><path d="M4 15l8-8 4 4-8 8H4z"/><path d="M14 6l3-3a1.414 1.414 0 0 1 2 2l-3 3"/>
+            </svg>
+            <span>Sign</span>
+        </button>
+        <button id="btnInvSignedCopy" class="ghost signed-copy-btn" title="Attach the signed copy the client sent back" aria-label="Signed copy" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+            </svg>
+            <span>Signed copy</span>
+        </button>
+        <button id="btnInvWorkflow" class="ghost workflow-btn" title="Track delivery and payment" aria-label="Open document workflow" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect width="6" height="6" x="3" y="3" rx="1"/><rect width="6" height="6" x="15" y="15" rx="1"/><path d="M6 9v4a2 2 0 0 0 2 2h7"/><path d="m12 12 3 3-3 3"/>
+            </svg>
+            <span>Workflow</span>
+        </button>
+        <button id="btnInvFitCols" class="ghost fitcols-btn action-break" title="Fit column widths to the content (like Excel AutoFit)" aria-label="Fit columns to content">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="7 8 3 12 7 16"/><polyline points="17 8 21 12 17 16"/><line x1="3" y1="12" x2="21" y2="12"/>
+            </svg>
+            <span>Fit</span>
+        </button>
+        <button id="btnInvAutofit" class="ghost autofit-toggle" title="Auto-fit row height for this invoice" aria-pressed="false">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 3v18"/><polyline points="8 7 12 3 16 7"/><polyline points="8 17 12 21 16 17"/>
+            </svg>
+            <span>Fit</span>
+        </button>
+        <button id="btnInvTypeSettings" class="icon-btn ghost action-break" title="Settings for this invoice type" aria-label="Type settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+        </button>
+    </div>
+
+    <button id="btnSettings" class="icon-btn ghost" title="الإعدادات" aria-label="Settings">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+    </button>
+</header>
+
+<!-- ===================== TYPE RAIL (master–detail sidebar, Phase M.8) =====================
+     Persistent left rail of document sub-types (Quotation / Invoice).
+     Selecting a type loads its editor on the right while the rail stays put.
+     Populated + shown by showTypeRail() in app.js; hidden by hideAllViews(). -->
+<aside id="typeRail" class="type-rail" dir="ltr" hidden>
+    <div class="type-rail-head" id="typeRailHead">Types</div>
+    <nav class="type-rail-list" id="typeRailList"></nav>
+</aside>
+
+<!-- ===================== DASHBOARD (landing) - Phase M.2 (Liquid Glass) ===================== -->
+<main id="hubView" class="view dash-view" dir="ltr" hidden>
+    <div class="dash-bg" aria-hidden="true"></div>
+
+    <div class="dash-inner">
+
+        <!-- ============ TOP BAR (wide search + settings) ============ -->
+        <div class="dash-topbar">
+            <div class="dash-search-wrap glass">
+                <svg aria-hidden="true" focusable="false" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="search" class="dash-search" id="dashSearch" aria-label="Search documents, clients, numbers" placeholder="Search documents, clients, numbers…" autocomplete="off">
+            </div>
+            <div class="dash-profile-switcher" id="dashProfileSwitcher">
+                <button class="dash-profile-button glass" id="dashProfileButton" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="dashProfileMenu">
+                    <span class="dash-profile-logo-wrap" aria-hidden="true"><img id="dashProfileLogo" alt=""></span>
+                    <span class="dash-profile-copy">
+                        <span class="dash-profile-kicker">Company</span>
+                        <span class="dash-profile-label" id="dashProfileLabel">Abraj Albadr</span>
+                    </span>
+                    <svg class="dash-profile-chevron" aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                <div class="dash-profile-menu glass" id="dashProfileMenu" role="menu" aria-label="Choose company" hidden>
+                    <button class="dash-profile-option" type="button" data-profile-id="abraj" role="menuitemradio" aria-checked="true">
+                        <span class="dash-profile-monogram abraj" aria-hidden="true">AA</span>
+                        <span><strong>Abraj Albadr</strong><small>Current company workspace</small></span>
+                        <svg class="dash-profile-check" aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>
+                    </button>
+                    <button class="dash-profile-option" type="button" data-profile-id="eshraqat" role="menuitemradio" aria-checked="false">
+                        <span class="dash-profile-monogram eshraqat" aria-hidden="true">EA</span>
+                        <span><strong>Eshraqat Albadr</strong><small>Isolated company workspace</small></span>
+                        <svg class="dash-profile-check" aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg>
+                    </button>
+                </div>
+            </div>
+            <button class="dash-theme-toggle glass" id="dashThemeToggle" type="button" title="Switch to dark mode" aria-label="Switch to dark mode" aria-pressed="false">
+                <span class="dash-theme-track" aria-hidden="true">
+                    <span class="dash-theme-rays"></span>
+                    <span class="dash-theme-stars"><i></i><i></i><i></i></span>
+                    <span class="dash-theme-icon dash-theme-sun">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+                    </span>
+                    <span class="dash-theme-icon dash-theme-moon">
+                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+                    </span>
+                    <span class="dash-theme-knob"></span>
+                </span>
+            </button>
+            <!-- 2026-10-23 - the activity and problems log. "Report a problem" is
+                 everyone's; the Activity log button shows for the admin only
+                 (static/activity.js asks activity_can_view). -->
+            <button class="dash-icon-btn glass" id="dashReportBtn" title="Report a problem" aria-label="Report a problem">
+                <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+            </button>
+            <button class="dash-icon-btn glass" id="dashActivityBtn" title="Activity log - what happened, what broke" aria-label="Activity log" hidden>
+                <svg aria-hidden="true" focusable="false" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </button>
+            <button class="dash-icon-btn glass" id="dashLockBtn" title="Lock (Ctrl+L)" aria-label="Lock">
+                <svg aria-hidden="true" focusable="false" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
+                </svg>
+            </button>
+            <button class="dash-icon-btn glass" id="dashSettingsBtn" title="Settings" aria-label="Settings">
+                <svg aria-hidden="true" focusable="false" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- ============ HERO (full width, animated bg) ============ -->
+        <section class="dash-hero">
+            <div class="dash-hero-anim" aria-hidden="true"></div>
+            <div class="dash-hero-content">
+                <div class="dash-eyebrow" id="dashHeroCompany">ABRAJ Business Hub</div>
+                <h1><span id="dashGreeting">Good morning, </span><span class="accent" id="dashUser">Waleed</span><span id="dashGreetingTail"></span></h1>
+                <div class="dash-user" id="dashTagline">Here is what's happening with your documents today.</div>
+                <div class="dash-datetime" id="dashDatetime"></div>
+            </div>
+            <div class="dash-hero-mark">
+                <img id="dashHeroLogo" src="" alt="" onerror="this.parentElement.style.display='none'">
+            </div>
+        </section>
+
+        <!-- ============ CREATE NEW ============ -->
+        <div class="dash-section-head dash-create-head">
+            <h2>Create New</h2>
+        </div>
+        <div class="dash-row cols-4">
+            <button class="dash-card glass" data-doc="quote">
+                <div class="dash-card-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6v5.2a2 2 0 0 0 .59 1.42l7.69 7.69a2.4 2.4 0 0 0 3.4 0l5.6-5.6a2.4 2.4 0 0 0 0-3.4l-7.69-7.69A2 2 0 0 0 11.17 3H6a3 3 0 0 0-3 3z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg></div>
+                <div class="dash-card-title">Quotations</div>
+            </button>
+            <button class="dash-card glass" data-doc="po">
+                <div class="dash-card-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19.5" r="1.6"/><circle cx="16.5" cy="19.5" r="1.6"/><path d="M2.5 3h2l1 12.5h12"/><path d="M5.5 6h15l-1.2 7.5H6.4"/></svg></div>
+                <div class="dash-card-title">Purchase Orders</div>
+            </button>
+            <button class="dash-card glass" data-doc="dn">
+                <div class="dash-card-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></div>
+                <div class="dash-card-title">Delivery Notes</div>
+            </button>
+            <button class="dash-card glass" data-doc="inv">
+                <div class="dash-card-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><polyline points="14 3 14 8 19 8"/><line x1="8.5" y1="12.5" x2="15.5" y2="12.5"/><line x1="8.5" y1="15.5" x2="15.5" y2="15.5"/><line x1="8.5" y1="18.5" x2="12.5" y2="18.5"/></svg></div>
+                <div class="dash-card-title">Invoices</div>
+            </button>
+        </div>
+
+        <!-- ============ MID ROW: left = Needs attention (full height) · right = Insights + Quick access ============
+             2026-10-21 (Waleed): Needs attention takes the whole left column so
+             it shows more cards; the two Insights cards became ONE card, and
+             Quick access moved under it as two compact buttons. -->
+        <div class="dash-mid-row">
+            <div class="dash-mid-main">
+                <div class="dash-section-head" id="dashFocusSectionHead">
+                    <h2 id="dashFocusTitle">Needs attention</h2>
+                    <span class="dash-focus-count" id="dashFocusCount" hidden></span>
+                </div>
+                <section class="dash-focus glass" id="dashFocus"></section>
+            </div>
+
+            <div class="dash-mid-side">
+                <div class="dash-section-head"><h2>Insights</h2></div>
+                <!-- ONE card, two panels (2026-10-21): bid outcomes on top, the
+                     By-Document-Type slider below, a hairline between them. -->
+                <section class="dash-insights-card glass" id="dashInsightsCard">
+                <!-- Phase X.19 - animated, interactive bid-outcomes donut -->
+                <div class="dash-donut-card" id="dashDonutCard">
+                    <div class="dash-donut-head">
+                        <h3>Bid outcomes</h3>
+                        <span class="dash-donut-sub" id="dashDonutPeriod">This month</span>
+                    </div>
+                    <div class="dash-donut-body">
+                        <div class="ax-donut" id="dashBidDonut"></div>
+                        <div class="dash-donut-legend" id="dashBidLegend"></div>
+                    </div>
+                </div>
+                <div class="dash-stats-card">
+                    <div class="dash-card-head">
+                        <h3 id="dashStatsTitle">By Document Type</h3>
+                        <div class="dash-slider-nav">
+                            <button class="dash-slide-btn" id="dashSlidePrev" aria-label="Previous">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                            </button>
+                            <span class="dash-period" id="dashStatsPeriod">Jun 2026</span>
+                            <button class="dash-slide-btn" id="dashSlideNext" aria-label="Next">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="dash-slider-viewport">
+                        <div class="dash-slider-track" id="dashSliderTrack">
+                            <!-- slides injected by JS -->
+                        </div>
+                    </div>
+                    <div class="dash-dots" id="dashDots"></div>
+                    <button type="button" class="dash-insights-btn" id="dashOpenInsights">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+                        <span>View full Insights</span>
+                        <svg class="dash-insights-arrow" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                    </button>
+                </div>
+                </section>
+
+                <!-- Quick access - two compact buttons under Insights (2026-10-21;
+                     it sat under Needs attention since Phase X.16). -->
+                <div class="dash-section-head dash-qa-head"><h2>Quick access</h2></div>
+                <div class="dash-bottom">
+                    <button class="dash-card glass dash-card-autofill" id="dashOpenAutofill">
+                        <div class="dash-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 11v6c0 1.66 4 3 9 3s9-1.34 9-3v-6"/></svg></div>
+                        <div class="dash-card-text">
+                            <div class="dash-card-title">Master Data</div>
+                            <div class="dash-card-sub">Every item, one place</div>
+                        </div>
+                    </button>
+                    <!-- 2026-07-31 - LPOs RECEIVED from clients. The one document
+                         in the chain we don't produce, so it gets a store rather
+                         than a document-type editor. -->
+                    <button class="dash-card glass dash-card-lpos" id="dashOpenLpos">
+                        <div class="dash-card-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg></div>
+                        <div class="dash-card-text">
+                            <div class="dash-card-title">Client LPOs</div>
+                            <div class="dash-card-sub">Receive, sign &amp; track</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- ===================== PO INFO STRIP ===================== -->
+<div class="po-strip doc-info-row" id="poStrip" hidden>
+    <div class="field doc-no-field doc-info-field">
+        <span class="label">رقم الطلب</span>
+        <input type="text" class="value po-no num-input doc-info-control" id="poNo" dir="ltr" autocomplete="off" spellcheck="false" />
+        <span class="po-extra" id="poExtra"></span>
+    </div>
+    <div class="field doc-reference-field doc-info-field">
+        <span class="label">Reference</span>
+        <input type="text" class="value num-input doc-info-control" id="poReference" autocomplete="off" spellcheck="false" />
+    </div>
+    <div class="field doc-date-field doc-info-field">
+        <span class="label">التاريخ</span>
+        <input type="date" class="value date-input doc-info-control" id="today" dir="ltr" />
+    </div>
+</div>
+
+<!-- ===================== EDITOR VIEW ===================== -->
+<main id="editorView" class="view" hidden>
+
+    <div class="items-wrap">
+        <table class="items-table" id="editorTable">
+            <thead>
+                <tr>
+                    <th class="c-idx">ت</th>
+                    <th class="c-name"    data-col-key="name"        style="width: 20%">المادة</th>
+                    <th class="c-desc"    data-col-key="description" style="width: 21%">الوصف</th>
+                    <th class="c-unit"    data-col-key="unit"        style="width: 9%">الوحدة</th>
+                    <th class="c-qty"     data-col-key="qty"         style="width: 7%">العدد</th>
+                    <th class="c-company" data-col-key="company"     style="width: 16%">الشركة</th>
+                    <!-- 2026-08-05 - optional per-row picture, same cell as the
+                         quotation's IMAGE column. Last before the delete button,
+                         and printed only when a row actually carries one
+                         (pdf_generator.any_row_has_image). -->
+                    <th class="c-image"   data-col-key="image"       style="width: 11%">صورة
+                        <button type="button" class="qc-head-find" data-find-img="image"
+                                title="جلب صورة من الإنترنت لكل سطر ليس فيه صورة" tabindex="-1">
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                              <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+                            </svg>بحث</button>
+                    </th>
+                    <th class="c-del" aria-label="حذف"></th>
+                </tr>
+            </thead>
+            <tbody id="rowsBody"></tbody>
+        </table>
+    </div>
+
+    <div class="editor-footer">
+        <div class="count">مجموع المواد: <strong id="rowCount">0</strong></div>
+        <div class="spacer"></div>
+        <button id="btnPoPaste" class="ghost" title="لصق صفوف من Excel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>
+            <span>استيراد</span>
+        </button>
+        <button id="btnAddRow" class="ghost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>إضافة سطر</span>
+        </button>
+    </div>
+
+    <div id="splitWarn" class="split-warn"></div>
+
+</main>
+
+<!-- Floating "+ insert row here" affordance (positioned via JS on hover) -->
+<button id="rowInsertBtn" class="row-insert-btn" hidden type="button" aria-label="إدراج سطر هنا">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+</button>
+
+<!-- ===================== UNIVERSAL SETTINGS VIEW ===================== -->
+<!-- App-wide settings only (logo, paths, language). Per-document-type settings
+     live in the ⚙ on each mini-hub (Quotation / Invoice) or topbar action group
+     (PO / Delivery Note). -->
+<main id="settingsView" class="view settings-view" dir="ltr" hidden>
+    <div class="settings-header">
+        <div class="settings-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <h2>App settings</h2>
+        </div>
+        <div class="settings-actions">
+            <button id="btnSettingsCancel" class="ghost">Cancel</button>
+            <button id="btnSettingsSave" class="primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                <span>Save settings</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="settings-body">
+        <nav class="settings-nav" id="settingsNav" aria-label="Settings sections">
+            <button type="button" class="settings-nav-item active" data-sect="general">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <span>General</span>
+            </button>
+            <button type="button" class="settings-nav-item" data-sect="behaviour">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <span>Behaviour</span>
+            </button>
+            <button type="button" class="settings-nav-item" data-sect="sign">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 19h-16"/><path d="M4 15l8-8 4 4-8 8H4z"/><path d="M14 6l3-3a1.414 1.414 0 0 1 2 2l-3 3"/></svg>
+                <span>Signatures &amp; Stamp</span>
+            </button>
+            <button type="button" class="settings-nav-item" data-sect="layout">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                <span>Document Layout</span>
+            </button>
+            <button type="button" class="settings-nav-item" data-sect="payments">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+                <span>Payments</span>
+            </button>
+            <button type="button" class="settings-nav-item" data-sect="about">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span>About &amp; Maintenance</span>
+            </button>
+        </nav>
+
+      <div class="settings-panels">
+        <div class="settings-panel" data-panel="general">
+
+        <!-- ===== Document Records (moved here from the dashboard - Phase X.16) ===== -->
+        <section class="settings-card">
+            <header>
+                <h3>Document Records</h3>
+                <p>Browse, relink, and delete every saved document.</p>
+            </header>
+            <div class="field">
+                <button type="button" id="btnOpenRecords" class="ghost">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+                    <span>Open Document Records</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ===== Appearance / theme (Phase X.18) ===== -->
+        <section class="settings-card">
+            <header>
+                <h3>Appearance</h3>
+                <p>Choose a light or dark theme for the app. Document PDFs are always printed light.</p>
+            </header>
+            <div class="field">
+                <div class="theme-seg" id="themeSeg" role="group" aria-label="Theme">
+                    <button type="button" class="theme-seg-opt" data-theme-val="light">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+                        <span>Light</span>
+                    </button>
+                    <button type="button" class="theme-seg-opt" data-theme-val="dark">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+                        <span>Dark</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== App-wide logo (used by every PDF) ===== -->
+        <section class="settings-card">
+            <header>
+                <h3>Logo</h3>
+                <p>One logo image is used for the header of every document type.</p>
+            </header>
+            <div class="field">
+                <div class="logo-row">
+                    <img id="set_logo_preview" alt="Logo preview" style="max-height:80px; max-width:170px; background:#fff; border:1px solid var(--border); border-radius:6px; padding:4px;">
+                    <button type="button" id="btnUploadLogo" class="ghost">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <span>Upload new logo</span>
+                    </button>
+                </div>
+                <div class="helper subtle">PNG or JPEG. Applies to every document's header on the next preview or save.</div>
+            </div>
+        </section>
+
+        <!-- ===== Paths ===== -->
+        <section class="settings-card">
+            <header>
+                <h3>Save paths</h3>
+                <p>Where every document type is filed on disk.</p>
+            </header>
+            <div class="field">
+                <label>Documents base path</label>
+                <input type="text" id="set_documents_root" dir="ltr" placeholder="D:\PO TOOL" />
+                <div class="helper">
+                    Root for every doc type. The tree looks like:<br>
+                    <code dir="ltr">&lt;base&gt;\QUOTATIONS\&lt;Client&gt;\&lt;Year&gt;\&lt;Month&gt;\</code><br>
+                    <code dir="ltr">&lt;base&gt;\INVOICES\&lt;Client&gt;\&lt;Year&gt;\&lt;Month&gt;\</code><br>
+                    <code dir="ltr">&lt;base&gt;\DELIVERY NOTES\&lt;Client&gt;\&lt;Year&gt;\&lt;Month&gt;\</code><br>
+                    <code dir="ltr">&lt;base&gt;\PURCHASE ORDERS\&lt;Year&gt;\&lt;Month&gt;\</code>
+                </div>
+            </div>
+            <div class="field">
+                <label>Purchase Orders override (optional)</label>
+                <input type="text" id="set_po_root" dir="ltr" placeholder="(leave empty to use <base>\PURCHASE ORDERS)" />
+                <div class="helper">Override only if you want POs filed somewhere different from the base path. Leave empty for the default.</div>
+            </div>
+        </section>
+
+        <!-- ===== UI language ===== -->
+        <section class="settings-card">
+            <header>
+                <h3>App language</h3>
+                <p>Language of the app chrome (buttons, menus, modals). Document text inside PDFs is unaffected - those use whatever you typed.</p>
+            </header>
+            <div class="field">
+                <label>Interface language</label>
+                <select id="set_ui_lang">
+                    <option value="en">English</option>
+                    <option value="ar">العربية (Arabic)</option>
+                </select>
+                <div class="helper subtle">The Purchase Order section keeps its Arabic labels either way (it's an Arabic document).</div>
+            </div>
+        </section>
+        </div><!-- /general panel -->
+
+        <div class="settings-panel" data-panel="behaviour" hidden>
+            <!-- ===== After export ===== -->
+            <section class="settings-card">
+                <header>
+                    <h3>After exporting a PDF</h3>
+                    <p>What should happen the moment a document is exported with the <strong>Export</strong> button.</p>
+                </header>
+                <div class="field">
+                    <label>On export, automatically</label>
+                    <select id="set_after_export">
+                        <option value="copy">Copy the PDF to the clipboard</option>
+                        <option value="open">Open the PDF</option>
+                        <option value="reveal">Show the PDF in its folder</option>
+                        <option value="none">Do nothing</option>
+                    </select>
+                    <div class="helper subtle">Copying lets you paste the file straight into WhatsApp, Outlook or a folder. The document is always saved either way.</div>
+                </div>
+            </section>
+
+            <!-- ===== Editor preferences ===== -->
+            <section class="settings-card">
+                <header>
+                    <h3>Editor preferences</h3>
+                    <p>Small conveniences applied across the document editors.</p>
+                </header>
+                <label class="pref-toggle">
+                    <input type="checkbox" id="set_compact_tables">
+                    <span class="pref-toggle-text">
+                        <span class="pref-toggle-title">Compact item tables</span>
+                        <span class="pref-toggle-sub">Tighter rows so more items fit on screen without scrolling.</span>
+                    </span>
+                </label>
+                <label class="pref-toggle">
+                    <input type="checkbox" id="set_dn_prices_default">
+                    <span class="pref-toggle-text">
+                        <span class="pref-toggle-title">New Delivery Notes start with prices shown</span>
+                        <span class="pref-toggle-sub">Turns on the “Show prices” switch automatically for every new delivery note.</span>
+                    </span>
+                </label>
+            </section>
+        </div><!-- /behaviour panel -->
+
+        <div class="settings-panel" data-panel="sign" hidden>
+        <!-- ===== Digital Signatures & Stamp (Phase K.1) ===== -->
+        <section class="settings-card">
+            <header>
+                <h3>Digital Signatures &amp; Stamp</h3>
+                <p>Upload up to 3 signatures and 1 stamp. The Sign button in every editor lets you drop them onto the document above the signature line, with a small natural-looking randomization each time.</p>
+            </header>
+            <div class="sig-settings-grid">
+                <!-- Stamp slot -->
+                <div class="sig-slot sig-slot-stamp">
+                    <div class="sig-slot-header">Stamp</div>
+                    <div class="sig-slot-preview">
+                        <img id="sigStampPreview" alt="No stamp uploaded">
+                        <div id="sigStampEmpty" class="sig-slot-empty">No image yet</div>
+                    </div>
+                    <div class="sig-slot-actions">
+                        <input type="file" id="sigStampFile" accept="image/png,image/jpeg" hidden>
+                        <button type="button" class="ghost" data-sig-upload="stamp">Upload</button>
+                        <button type="button" class="ghost danger-text" data-sig-delete="stamp">Remove</button>
+                    </div>
+                </div>
+                <!-- Three signature slots -->
+                <div class="sig-slot" data-sig-slot="1">
+                    <div class="sig-slot-header">Signature 1</div>
+                    <div class="sig-slot-preview">
+                        <img class="sig-preview" data-preview="1" alt="">
+                        <div class="sig-slot-empty" data-empty="1">No image yet</div>
+                    </div>
+                    <input type="text" class="sig-label-input" data-label="1" placeholder="Label (e.g. Eng. Ali Majeed Ch.)">
+                    <div class="sig-slot-actions">
+                        <input type="file" class="sig-file" data-file="1" accept="image/png,image/jpeg" hidden>
+                        <button type="button" class="ghost" data-sig-upload="1">Upload</button>
+                        <button type="button" class="ghost danger-text" data-sig-delete="1">Remove</button>
+                    </div>
+                </div>
+                <div class="sig-slot" data-sig-slot="2">
+                    <div class="sig-slot-header">Signature 2</div>
+                    <div class="sig-slot-preview">
+                        <img class="sig-preview" data-preview="2" alt="">
+                        <div class="sig-slot-empty" data-empty="2">No image yet</div>
+                    </div>
+                    <input type="text" class="sig-label-input" data-label="2" placeholder="Label (e.g. Waleed Hamid)">
+                    <div class="sig-slot-actions">
+                        <input type="file" class="sig-file" data-file="2" accept="image/png,image/jpeg" hidden>
+                        <button type="button" class="ghost" data-sig-upload="2">Upload</button>
+                        <button type="button" class="ghost danger-text" data-sig-delete="2">Remove</button>
+                    </div>
+                </div>
+                <div class="sig-slot" data-sig-slot="3">
+                    <div class="sig-slot-header">Signature 3</div>
+                    <div class="sig-slot-preview">
+                        <img class="sig-preview" data-preview="3" alt="">
+                        <div class="sig-slot-empty" data-empty="3">No image yet</div>
+                    </div>
+                    <input type="text" class="sig-label-input" data-label="3" placeholder="Label (e.g. Owner)">
+                    <div class="sig-slot-actions">
+                        <input type="file" class="sig-file" data-file="3" accept="image/png,image/jpeg" hidden>
+                        <button type="button" class="ghost" data-sig-upload="3">Upload</button>
+                        <button type="button" class="ghost danger-text" data-sig-delete="3">Remove</button>
+                    </div>
+                </div>
+            </div>
+            <div class="sig-size-row">
+                <div class="field">
+                    <label>Stamp size (mm) - default 46.5 &times; 29 (≈ 1.83″ &times; 1.14″)</label>
+                    <div class="sig-size-inputs">
+                        <input type="number" id="sigStampW" step="0.5" min="10" max="120">
+                        <span>×</span>
+                        <input type="number" id="sigStampH" step="0.5" min="10" max="120">
+                    </div>
+                </div>
+                <div class="field">
+                    <label>Signature size (mm) - default 55 &times; 22</label>
+                    <div class="sig-size-inputs">
+                        <input type="number" id="sigSigW" step="0.5" min="10" max="120">
+                        <span>×</span>
+                        <input type="number" id="sigSigH" step="0.5" min="5" max="80">
+                    </div>
+                </div>
+            </div>
+            <div class="helper subtle">
+                Tip: use a PNG with a transparent background for both stamp and signature so they layer cleanly over the line.
+            </div>
+        </section>
+
+        <!-- ===== Auto-sign on save (2026-07-24) ===== -->
+        <section class="settings-card">
+            <header>
+                <h3>Sign automatically when saving</h3>
+                <p>Every document you save is signed and stamped for you, with the same natural-looking randomization. Delivery Notes sign the <b>Supplier</b> box only - the Recipient box stays blank for the client to sign by hand.</p>
+            </header>
+            <label class="pref-toggle">
+                <input type="checkbox" id="sigAutoEnabled">
+                <span class="pref-toggle-text">
+                    <span class="pref-toggle-title">Sign every document on save</span>
+                    <span class="pref-toggle-sub">Applies the signature and stamp below to Purchase Orders, Quotations, Delivery Notes and Invoices.</span>
+                </span>
+            </label>
+            <label class="pref-toggle">
+                <input type="checkbox" id="sigAutoStamp">
+                <span class="pref-toggle-text">
+                    <span class="pref-toggle-title">Include the stamp</span>
+                    <span class="pref-toggle-sub">Place the stamp alongside the signature.</span>
+                </span>
+            </label>
+            <div class="sig-size-row">
+                <div class="field">
+                    <label for="sigAutoSig">Signature to use</label>
+                    <select id="sigAutoSig">
+                        <option value="">No signature (stamp only)</option>
+                        <option value="1">Signature 1</option>
+                        <option value="2">Signature 2</option>
+                        <option value="3">Signature 3</option>
+                    </select>
+                </div>
+            </div>
+            <div class="helper subtle">
+                A document you signed by hand keeps that choice - saving only re-rolls the position.
+                Turn this off if you want to sign documents manually.
+            </div>
+        </section>
+
+        </div><!-- /sign panel -->
+
+        <div class="settings-panel" data-panel="layout" hidden>
+        <!-- ===== Document Header, Closing & Addresses (Phase M.6 - moved here
+             from each doc type's own settings) ===== -->
+        <section class="settings-card">
+            <header>
+                <h3>Document Header, Closing &amp; Addresses</h3>
+                <p>The company header lines, title, brand color, closing line, and client-address dropdown options - edited per document type.</p>
+            </header>
+            <div class="field">
+                <label>Document type</label>
+                <select id="hdrDocType">
+                    <option value="quotation">Quotation</option>
+                    <option value="invoice">Invoice</option>
+                    <option value="delivery">Delivery Note</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Company name lines (one per row)</label>
+                <textarea id="hdrNameLines" rows="4" dir="ltr" placeholder="ABRAJ ALBADR CO.&#10;General Trading, Contracting,&#10;And Heavy Machinery Rental"></textarea>
+            </div>
+            <div class="ds-grid two">
+                <label>Title
+                    <input type="text" id="hdrTitle" dir="ltr" placeholder="(optional - varies per type)">
+                </label>
+                <label>Brand color
+                    <span class="ds-color-row">
+                        <input type="color" id="hdrBrand" value="#1F3864">
+                        <input type="text"  id="hdrBrandHex" value="#1F3864" maxlength="7" dir="ltr">
+                    </span>
+                </label>
+            </div>
+            <div class="field">
+                <label>Closing line (centered text under the items table)</label>
+                <input type="text" id="hdrClosing" dir="ltr">
+            </div>
+            <div class="field">
+                <label>Address dropdown options (one address per line)</label>
+                <textarea id="hdrAddrs" rows="3" dir="ltr" placeholder="CSSP Site&#10;IBRU"></textarea>
+            </div>
+            <div class="field">
+                <div class="dm-launcher-row">
+                    <button type="button" id="btnHdrSave" class="primary">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Save header for this type</span>
+                    </button>
+                    <div class="helper subtle">Saves to the selected document type only. Signature labels stay in each type's own settings.</div>
+                </div>
+            </div>
+        </section>
+
+        </div><!-- /layout panel -->
+
+        <div class="settings-panel" data-panel="payments" hidden>
+        <section class="settings-card">
+            <header>
+                <h3>Payment accounts</h3>
+                <p>The accounts money arrives in. Each one carries its own exchange rate,
+                   and that rate is what a document's COSTS are converted at when the
+                   client is paid into it. It does not change what an invoice bills.</p>
+            </header>
+            <div class="field" id="payAccounts"></div>
+            <div class="field">
+                <button type="button" id="payAddAccount" class="ghost">Add an account</button>
+            </div>
+        </section>
+        <section class="settings-card">
+            <header>
+                <h3>When no account is known</h3>
+                <p>Used for a client with no receiving account set in Master Data.</p>
+            </header>
+            <label class="field">
+                <span>1 USD =</span>
+                <input id="payFallbackRate" type="number" min="1" step="1" inputmode="decimal">
+                <small>IQD. Applies to the profit figure only.</small>
+            </label>
+        </section>
+        <div class="field">
+            <button type="button" id="payAccountsSave" class="primary">Save payment accounts</button>
+        </div>
+        </div>
+
+        <div class="settings-panel" data-panel="about" hidden>
+            <!-- ===== Quick access ===== -->
+            <section class="settings-card">
+                <header>
+                    <h3>Quick access</h3>
+                    <p>Jump straight to the management tools and your files.</p>
+                </header>
+                <div class="about-actions">
+                    <button type="button" id="btnAboutOpenFolder" class="ghost">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                        <span>Open documents folder</span>
+                    </button>
+                    <button type="button" id="btnAboutDataManager" class="ghost">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 11v6c0 1.66 4 3 9 3s9-1.34 9-3v-6"/></svg>
+                        <span>Data Manager</span>
+                    </button>
+                    <button type="button" id="btnAboutBackup" class="ghost">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        <span>Backup &amp; Restore</span>
+                    </button>
+                    <button type="button" id="btnAboutVerify" class="ghost" title="Check that a PDF someone sent you is really one of ours">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+                        <span>Verify a document</span>
+                    </button>
+                    </div>
+            </section>
+
+            <!-- ===== About ===== -->
+            <section class="settings-card">
+                <header>
+                    <h3>About Business Hub</h3>
+                    <p>Your offline desktop hub for Quotations, Purchase Orders, Delivery Notes and Invoices.</p>
+                </header>
+                <div class="about-grid">
+                    <div class="about-row"><span class="about-k">Company</span><span class="about-v">ABRAJ ALBADR CO.</span></div>
+                    <div class="about-row"><span class="about-k">Documents folder</span><span class="about-v" id="aboutDocsPath" dir="ltr">-</span></div>
+                    <div class="about-row"><span class="about-k">Interface language</span><span class="about-v" id="aboutLang">-</span></div>
+                </div>
+            </section>
+
+            <!-- ===== Reset (danger zone) ===== -->
+            <section class="settings-card danger-zone">
+                <header>
+                    <h3>Reset</h3>
+                    <p>Restore every app-wide setting (logo, save paths, language, signatures, document headers) to its default. Your saved documents and database are never touched.</p>
+                </header>
+                <div class="settings-footer-bar">
+                    <button id="btnSettingsReset" class="ghost danger-text">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                        </svg>
+                        <span>Restore defaults</span>
+                    </button>
+                    <div class="spacer"></div>
+                    <div class="helper">Changes apply immediately - no restart needed.</div>
+                </div>
+            </section>
+        </div><!-- /about panel -->
+
+      </div><!-- /settings-panels -->
+    </div>
+</main>
+
+<!-- ===================== DATA MANAGER VIEW (Phase I) ===================== -->
+<!-- ===================== ITEM MASTER (2026-08-11) =====================
+     Replaces "Autofill Suggestions": thirteen lists over seven tables, in
+     which the same physical item appeared up to four times. This is ONE row
+     per item, gathered by name, with writes fanned back out. The list, the
+     detail panel and the health strip are all built by static/item_master.js.
+     Backend: backend/master_data.py. -->
+<main id="itemMasterView" class="view im-view" dir="ltr" hidden>
+    <div class="im-head">
+        <div class="im-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+            <h2>Master Data</h2>
+            <nav class="md-section-tabs" aria-label="Master Data sections">
+                <button type="button" aria-current="page">Materials</button>
+                <button type="button" id="imClientsTab">Clients</button>
+            </nav>
+            <span class="im-count" id="imCount">-</span>
+        </div>
+        <div class="im-head-actions">
+            <div class="im-search">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="search" id="imSearch" aria-label="Search items"
+                       placeholder="Search items, descriptions, units…" autocomplete="off">
+            </div>
+            <!-- Master Data is not only what the documents happened to save:
+                 an item can be entered here directly, before it has ever been
+                 on one. "its a master data at the end." -->
+            <button type="button" id="imNewBtn" class="primary" title="Add an item by hand">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>New item</span>
+            </button>
+            <button type="button" id="imHealthBtn" class="secondary" title="Catalog health &amp; cleanup">Health</button>
+            <button type="button" id="imBack" class="warm-red">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                <span>Back</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ONE filter row above everything it scopes. -->
+    <div class="im-filters">
+        <div class="im-chiprow" id="imSources" role="group" aria-label="Filter by document type"></div>
+        <div class="im-chiprow im-flagrow" id="imFlags" role="group" aria-label="Filter by condition"></div>
+        <label class="im-sort">Sort
+            <select id="imSort">
+                <option value="used">Most used</option>
+                <option value="recent">Recently used</option>
+                <option value="number">Item number</option>
+                <option value="name">Name (A–Z)</option>
+                <option value="name_ar">الاسم بالعربي</option>
+                <option value="desc">Description</option>
+                <option value="unit">Unit</option>
+                <option value="price">Highest price</option>
+                <option value="cost">Highest cost</option>
+                <option value="picture">Has a picture</option>
+                <!-- "Longest idle" was here until 2026-08-26. There has never
+                     been an `idle` sort key behind it, so it silently fell back
+                     to Most used - a control that lies is worse than none. Every
+                     option here is now also a clickable column header. -->
+            </select>
+        </label>
+    </div>
+
+    <div class="im-body">
+        <div class="im-listwrap">
+            <div class="im-bulk" id="imBulk" hidden></div>
+            <div class="im-scroll" id="imList" role="table" aria-label="Items"></div>
+            <p class="im-sr-only" id="imStatus" role="status" aria-live="polite"></p>
+        </div>
+        <aside class="im-detail" id="imDetail" hidden></aside>
+    </div>
+</main>
+
+<main id="clientMasterView" class="view cm-view" dir="ltr" hidden>
+    <div class="cm-head">
+        <div class="cm-title"><h2>Master Data</h2>
+            <nav class="md-section-tabs" aria-label="Master Data sections">
+                <button type="button" id="cmMaterials">Materials</button>
+                <button type="button" aria-current="page">Clients</button>
+            </nav><span id="cmCount" class="cm-count"></span>
+        </div>
+        <div class="cm-head-actions"><button type="button" id="cmNew" class="primary">New client</button><button type="button" id="cmBack" class="warm-red">Back</button></div>
+    </div>
+    <div class="cm-toolbar"><input type="search" id="cmSearch" placeholder="Search names, contacts or tax ID…" aria-label="Search clients" autocomplete="off">
+        <label>Status <select id="cmStatus"><option value="active">Active clients</option><option value="archived">Archived clients</option><option value="all">All clients</option></select></label>
+    </div>
+    <div id="cmMessage" class="cm-message" role="status" aria-live="polite" hidden></div>
+    <div class="cm-body"><div id="cmList" class="cm-list" aria-label="Clients" aria-busy="false"></div><section id="cmDetail" class="cm-detail" aria-label="Client details"></section></div>
+</main>
+
+<main id="dataManagerView" class="view dm-view" dir="ltr" hidden>
+    <div class="dm-header">
+        <div class="dm-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                <path d="M3 5v6c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                <path d="M3 11v6c0 1.66 4 3 9 3s9-1.34 9-3v-6"/>
+            </svg>
+            <h2 id="dmHeaderTitle">Data Manager</h2>
+        </div>
+        <nav class="dm-tabs" role="tablist">
+            <button type="button" data-dm-tab="browse"    class="dm-tab active" role="tab">Browse</button>
+            <button type="button" data-dm-tab="clients"   class="dm-tab"        role="tab" title="Manage clients - rename, merge, delete">Clients</button>
+            <button type="button" data-dm-tab="backup"    class="dm-tab"        role="tab">Backup &amp; Restore</button>
+            <button type="button" data-dm-tab="integrity" class="dm-tab"        role="tab" disabled title="Coming in Phase I.2">Integrity</button>
+            <button type="button" data-dm-tab="duplicates" class="dm-tab"       role="tab" title="Find duplicate or near-duplicate items inside a catalog">Duplicates</button>
+            <button type="button" data-dm-tab="stats"     class="dm-tab"        role="tab" disabled title="Coming in Phase I.4">Stats</button>
+        </nav>
+        <button id="btnDmClose" class="ghost">Close</button>
+    </div>
+
+    <!-- ============== BROWSE TAB ============== -->
+    <div class="dm-pane" data-dm-pane="browse">
+        <aside class="dm-sidebar">
+            <div class="dm-sidebar-head">
+                <span id="dmSidebarTitle" class="dm-sidebar-title">Sections</span>
+                <button type="button" id="dmGroupsToggle" class="dm-groups-toggle" title="Expand / collapse all">Collapse all</button>
+            </div>
+            <div class="dm-sidebar-filter">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="search" id="dmSectionFilter" placeholder="Filter sections…" autocomplete="off" />
+            </div>
+            <div id="dmSectionList" class="dm-section-list"></div>
+        </aside>
+        <section class="dm-main">
+            <div class="dm-toolbar">
+                <input type="search" id="dmSearch" placeholder="Search…" />
+                <select id="dmYear"><option value="">All years</option></select>
+                <select id="dmMonth">
+                    <option value="">All months</option>
+                    <option value="1">Jan</option><option value="2">Feb</option>
+                    <option value="3">Mar</option><option value="4">Apr</option>
+                    <option value="5">May</option><option value="6">Jun</option>
+                    <option value="7">Jul</option><option value="8">Aug</option>
+                    <option value="9">Sep</option><option value="10">Oct</option>
+                    <option value="11">Nov</option><option value="12">Dec</option>
+                </select>
+                <select id="dmClient"><option value="">All clients</option></select>
+                <span id="dmCount" class="dm-count subtle">0 rows</span>
+                <span class="spacer"></span>
+                <button id="dmBulkDelete" class="ghost danger-text" disabled>
+                    <span>Delete selected</span>
+                </button>
+            </div>
+            <div id="dmEmpty" class="dm-empty" hidden>Pick a section on the left to begin.</div>
+            <div id="dmTableWrap" class="dm-table-wrap" hidden>
+                <table id="dmTable" class="dm-table">
+                    <thead><tr id="dmThead"></tr></thead>
+                    <tbody id="dmTbody"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- ============== DUPLICATES TAB ============== -->
+    <div class="dm-pane" data-dm-pane="duplicates" hidden>
+        <div class="dm-dup-toolbar">
+            <div class="dm-dup-title">
+                <strong>Find duplicates in:</strong>
+                <select id="dmDupCatalog" class="dm-dup-select"></select>
+            </div>
+            <label class="dm-dup-slider">
+                Match strictness
+                <input type="range" id="dmDupThreshold" min="50" max="100" step="1" value="85">
+                <span id="dmDupThresholdLabel" class="dm-count subtle">85%</span>
+            </label>
+            <button id="btnDmDupScan" class="primary">Scan</button>
+            <span id="dmDupSummary" class="dm-count subtle"></span>
+        </div>
+        <div id="dmDupResults" class="dm-dup-results"></div>
+    </div>
+
+    <!-- ============== CLIENTS TAB ============== -->
+    <div class="dm-pane dm-pane-clients" data-dm-pane="clients" hidden>
+        <div class="dm-cl-toolbar">
+            <div class="dm-cl-search">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="search" id="dmClSearch" placeholder="Search clients…" autocomplete="off">
+            </div>
+            <span id="dmClCount" class="dm-count subtle"></span>
+            <span class="spacer" style="flex:1"></span>
+            <button id="btnDmClAdd" class="secondary">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Add Client</span>
+            </button>
+        </div>
+        <div class="dm-cl-wrap">
+            <table class="dm-table dm-cl-table">
+                <thead><tr>
+                    <th>Client</th>
+                    <th class="dm-cl-num">Quotes</th>
+                    <th class="dm-cl-num">Invoices</th>
+                    <th class="dm-cl-num">DNs</th>
+                    <th class="dm-cl-num">Invoiced</th>
+                    <th>Last activity</th>
+                    <th class="dm-cl-actions-h">Actions</th>
+                </tr></thead>
+                <tbody id="dmClTbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- ============== BACKUP & RESTORE TAB ============== -->
+    <div class="dm-pane" data-dm-pane="backup" hidden>
+        <div class="dm-backup-grid">
+            <section class="dm-card">
+                <h3>Create backup</h3>
+                <p>Zips the database <code>data.db</code>, your settings, and every saved PO / Quotation / DN / Invoice PDF into a single archive at the folder you pick.</p>
+                <button id="btnDmBackup" class="primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <span>Pick folder &amp; back up now</span>
+                </button>
+                <div id="dmBackupStatus" class="dm-status subtle"></div>
+            </section>
+            <section class="dm-card">
+                <h3>Restore from backup</h3>
+                <p>Reads a backup <code>.zip</code> and overwrites the database. PDF folders are merged (nothing is deleted from disk). The current database is automatically saved as <code>.before-restore.bak</code> first.</p>
+                <button id="btnDmRestore" class="ghost">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9"/><polyline points="7 14 12 9 17 14"/><line x1="12" y1="9" x2="12" y2="21"/></svg>
+                    <span>Pick archive &amp; restore</span>
+                </button>
+                <div id="dmRestoreStatus" class="dm-status subtle"></div>
+            </section>
+        </div>
+    </div>
+</main>
+
+<!-- ===================== OPEN-EXISTING VIEW ===================== -->
+<main id="openView" class="view" hidden>
+    <div class="open-controls">
+        <label>الشهر
+            <select id="openMonth"></select>
+        </label>
+        <label>السنة
+            <input type="number" id="openYear" min="2020" max="2100">
+        </label>
+        <button id="btnRefreshList" class="secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            <span>تحديث</span>
+        </button>
+        <div class="spacer"></div>
+        <button id="btnCloseOpen" class="warm-red">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+            </svg>
+            <span>رجوع</span>
+        </button>
+    </div>
+    <div id="poList" class="po-list"></div>
+</main>
+
+<!-- ===================== QUOTATION MINI-HUB ===================== -->
+<main id="quoteHubView" class="view hub-view" dir="ltr" hidden>
+    <div class="hub-head-bar">
+        <button id="btnQuoteHubBack" class="hub-back-btn" title="Back to main hub" aria-label="Back to main hub">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+            <span>Back</span>
+        </button>
+        <div class="hub-head">
+            <h1>Quotation</h1>
+            <p>Choose a quotation type</p>
+        </div>
+        <span class="hub-head-spacer"></span>
+    </div>
+    <div class="hub-grid" id="quoteTypeGrid">
+        <!-- type cards injected by quote.js -->
+    </div>
+</main>
+
+<!-- ===================== QUOTATION EDITOR ===================== -->
+<main id="quoteView" class="view quote-edit" dir="ltr" hidden>
+    <div class="q-meta-form quote-meta-form doc-info-row" id="quoteMeta">
+        <div class="qf doc-no-field doc-info-field">
+            <label>Quotation No.</label>
+            <input type="text" class="qf-static num-input doc-info-control" id="qNo" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="qf doc-date-field doc-info-field">
+            <label>Date</label>
+            <input type="date" class="qf-static date-input doc-info-control" id="qDate" />
+        </div>
+        <div class="qf doc-reference-field doc-info-field">
+            <label>Reference</label>
+            <input type="text" class="doc-info-control" id="qReference" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="qf doc-info-field">
+            <label class="doc-label-with-code">Client Name<span class="doc-client-code" id="qClientCode" hidden></span></label>
+            <input type="text" class="doc-info-control" id="qClient" list="qClientList" autocomplete="off" placeholder="Select or type a client…">
+            <datalist id="qClientList"></datalist>
+        </div>
+        <div class="qf doc-info-field">
+            <label>RFQ No.</label>
+            <input type="text" class="doc-info-control" id="qRfq" value="N/A">
+        </div>
+        <div class="qf doc-info-field">
+            <label>Client Address</label>
+            <input type="text" class="doc-info-control" id="qAddress" list="qAddrList" autocomplete="off">
+            <datalist id="qAddrList"></datalist>
+        </div>
+    </div>
+
+    <div class="items-wrap">
+        <table class="items-table q-edit-table">
+            <thead id="qThead"></thead>
+            <tbody id="qRowsBody"></tbody>
+        </table>
+    </div>
+
+    <div class="editor-footer">
+        <div class="count">Items: <strong id="qRowCount">0</strong></div>
+        <!-- 2026-08-25 - one control for every private figure on screen:
+             the COST + PROFIT strip and the profit/loss cards. Hiding the
+             columns while the cards still showed the same numbers would be
+             worse than no control at all. Wired by app.js initPrivacyMode(). -->
+        <button class="ghost pv-toggle icon-only" data-act="toggle-private" aria-pressed="false"
+                aria-label="Hide the COST and PROFIT columns and the profit cards"
+                title="Hide the COST and PROFIT columns and the profit cards (Ctrl+Shift+H)">
+            <span class="pv-icon"></span>
+        </button>
+        <div class="q-grand-live" id="qGrandWrap">Grand Total: <strong id="qGrandTotal">$0.00</strong></div>
+        <div class="spacer"></div>
+        <button id="btnQTerms" class="secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <span>Terms (<span id="qTermsCount">3</span>)</span>
+        </button>
+        <button id="btnQPaste" class="ghost" title="Paste rows from Excel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>
+            <span>Paste</span>
+        </button>
+        <button id="btnQAddRow" class="ghost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Add row</span>
+        </button>
+    </div>
+
+    <!-- 2026-08-04 - live cost / sell / profit / margin for this quotation.
+         PRIVATE: never printed. Filled by window.renderEconCards (static/app.js). -->
+    <div class="econ-cards" id="qEconCards"></div>
+</main>
+
+<!-- ===================== QUOTATION OPEN VIEW ===================== -->
+<main id="quoteOpenView" class="view" dir="ltr" hidden>
+    <div class="open-controls">
+        <label>Month
+            <select id="qOpenMonth"></select>
+        </label>
+        <label>Year
+            <input type="number" id="qOpenYear" min="2020" max="2100">
+        </label>
+        <button id="btnQRefreshList" class="secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span>Refresh</span>
+        </button>
+        <div class="spacer"></div>
+        <button id="btnQCloseOpen" class="warm-red">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            <span>Back</span>
+        </button>
+    </div>
+    <div class="filter-chips-stack">
+        <div class="filter-chips" id="qFilterChips" role="tablist" aria-label="Filter by quotation type">
+            <!-- type chips injected by quote.js - All / Materials / Equipment / Manpower / Service -->
+        </div>
+        <div class="filter-chips filter-chips-client" id="qClientChips" role="tablist" aria-label="Filter by client">
+            <!-- client chips injected -->
+        </div>
+    </div>
+    <div id="qList" class="po-list"></div>
+</main>
+
+<!-- ===================== DELIVERY NOTE EDITOR ===================== -->
+<main id="dnView" class="view dn-edit" dir="ltr" hidden>
+    <div class="q-meta-form dn-meta-form doc-info-row" id="dnMeta">
+        <div class="qf doc-no-field doc-info-field">
+            <label>D.N No.</label>
+            <input type="text" class="qf-static num-input doc-info-control" id="dnNo" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="qf doc-date-field doc-info-field">
+            <label>Date</label>
+            <input type="date" class="qf-static date-input doc-info-control" id="dnDate" />
+        </div>
+        <div class="qf doc-reference-field doc-info-field">
+            <label>Reference</label>
+            <input type="text" class="doc-info-control" id="dnReference" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="qf doc-info-field">
+            <label class="doc-label-with-code">Client Name<span class="doc-client-code" id="dnClientCode" hidden></span></label>
+            <input type="text" class="doc-info-control" id="dnClient" list="dnClientList" autocomplete="off" placeholder="Select or type a client…">
+            <datalist id="dnClientList"></datalist>
+        </div>
+        <div class="qf doc-info-field">
+            <label>LPO No.</label>
+            <!-- Pick from this client's open LPOs (2026-09-11). Still typable:
+                 an odd case must never be un-fileable. -->
+            <div class="doc-info-pick">
+                <input type="text" class="doc-info-control" id="dnLpo" value="N/A">
+                <button type="button" class="ghost doc-info-pickbtn" id="dnLpoPick"
+                        title="Choose from this client's LPOs">Choose</button>
+            </div>
+        </div>
+        <div class="qf doc-info-field">
+            <label>Client Address</label>
+            <input type="text" class="doc-info-control" id="dnAddress" list="dnAddrList" autocomplete="off">
+            <datalist id="dnAddrList"></datalist>
+        </div>
+        <div class="qf dn-linked-quote doc-info-field"><label>Linked Quotation</label>
+          <div class="qf-link doc-info-control"><input type="text" class="doc-info-control" id="dnSrcQuote" list="dnQuoteList" autocomplete="off" placeholder="Quotation no. - blank if none">
+          <datalist id="dnQuoteList"></datalist>
+          <button type="button" id="dnSrcQuoteClear" class="qf-link-clear" title="No quotation (standalone)">×</button></div></div>
+    </div>
+
+    <div class="items-wrap">
+        <table class="items-table dn-edit-table">
+            <thead id="dnThead"></thead>
+            <tbody id="dnRowsBody"></tbody>
+        </table>
+    </div>
+
+    <div class="editor-footer">
+        <div class="count">Items: <strong id="dnRowCount">0</strong></div>
+        <!-- 2026-08-25 - one control for every private figure on screen:
+             the COST + PROFIT strip and the profit/loss cards. Hiding the
+             columns while the cards still showed the same numbers would be
+             worse than no control at all. Wired by app.js initPrivacyMode(). -->
+        <button class="ghost pv-toggle icon-only" data-act="toggle-private" aria-pressed="false"
+                aria-label="Hide the COST and PROFIT columns and the profit cards"
+                title="Hide the COST and PROFIT columns and the profit cards (Ctrl+Shift+H)">
+            <span class="pv-icon"></span>
+        </button>
+        <div class="q-grand-live" id="dnGrandWrap" hidden>
+            Grand Total: <strong id="dnGrandTotal">$0.00</strong>
+            <span class="dn-grand-words" id="dnGrandWords"></span>
+        </div>
+        <div class="spacer"></div>
+        <button id="btnDnPaste" class="ghost" title="Paste rows from Excel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>
+            <span>Paste</span>
+        </button>
+        <button id="btnDnAddRow" class="ghost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Add row</span>
+        </button>
+    </div>
+
+    <!-- 2026-08-04 - live cost / sell / profit / margin for this delivery note.
+         PRIVATE: never printed. Filled by window.renderEconCards (static/app.js). -->
+    <div class="econ-cards" id="dnEconCards"></div>
+
+    <div id="dnLpoWarn" class="split-warn"></div>
+</main>
+
+<!-- ===================== DELIVERY NOTE OPEN VIEW ===================== -->
+<main id="dnOpenView" class="view" dir="ltr" hidden>
+    <div class="open-controls">
+        <label>Month
+            <select id="dnOpenMonth"></select>
+        </label>
+        <label>Year
+            <input type="number" id="dnOpenYear" min="2020" max="2100">
+        </label>
+        <button id="btnDnRefreshList" class="secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span>Refresh</span>
+        </button>
+        <div class="spacer"></div>
+        <button id="btnDnCloseOpen" class="warm-red">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            <span>Back</span>
+        </button>
+    </div>
+    <div class="filter-chips-stack">
+        <div class="filter-chips filter-chips-client" id="dnClientChips" role="tablist" aria-label="Filter by client">
+            <!-- client chips injected by dn.js -->
+        </div>
+    </div>
+    <div id="dnList" class="po-list"></div>
+</main>
+
+<!-- ===================== INVOICE MINI-HUB ===================== -->
+<main id="invHubView" class="view hub-view" dir="ltr" hidden>
+    <div class="hub-head-bar">
+        <button id="btnInvHubBack" class="hub-back-btn" title="Back to main hub" aria-label="Back to main hub">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+            </svg>
+            <span>Back</span>
+        </button>
+        <div class="hub-head">
+            <h1>Invoice</h1>
+            <p>Choose an invoice type</p>
+        </div>
+        <span class="hub-head-spacer"></span>
+    </div>
+    <div class="hub-grid" id="invTypeGrid">
+        <!-- type cards injected by inv.js -->
+    </div>
+</main>
+
+<!-- ===================== INVOICE EDITOR ===================== -->
+<main id="invView" class="view inv-edit" dir="ltr" hidden>
+    <div class="q-meta-form inv-meta-form doc-info-row" id="invMeta">
+        <div class="qf doc-no-field doc-info-field">
+            <label>Invoice No.</label>
+            <input type="text" class="qf-static num-input doc-info-control" id="invNo" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="qf doc-date-field doc-info-field">
+            <label>Date</label>
+            <input type="date" class="qf-static date-input doc-info-control" id="invDate" />
+        </div>
+        <div class="qf doc-reference-field doc-info-field">
+            <label>Reference</label>
+            <input type="text" class="doc-info-control" id="invReference" autocomplete="off" spellcheck="false">
+        </div>
+        <div class="qf doc-info-field">
+            <label class="doc-label-with-code">Client Name<span class="doc-client-code" id="invClientCode" hidden></span></label>
+            <input type="text" class="doc-info-control" id="invClient" list="invClientList" autocomplete="off" placeholder="Select or type a client…">
+            <datalist id="invClientList"></datalist>
+        </div>
+        <div class="qf doc-info-field">
+            <label>LPO No.</label>
+            <!-- Pick from this client's open LPOs (2026-09-11). Still typable:
+                 an odd case must never be un-fileable. -->
+            <div class="doc-info-pick">
+                <input type="text" class="doc-info-control" id="invLpo" value="N/A">
+                <button type="button" class="ghost doc-info-pickbtn" id="invLpoPick"
+                        title="Choose from this client's LPOs">Choose</button>
+            </div>
+        </div>
+        <div class="qf doc-info-field">
+            <label>Client Address</label>
+            <input type="text" class="doc-info-control" id="invAddress" list="invAddrList" autocomplete="off">
+            <datalist id="invAddrList"></datalist>
+        </div>
+        <div class="qf inv-bank-field doc-info-field">
+            <label>Payment Bank</label>
+            <select class="doc-info-control" id="invBank"></select>
+        </div>
+        <div class="qf inv-linked-quote doc-info-field"><label>Linked Quotation</label>
+          <div class="qf-link doc-info-control"><input type="text" class="doc-info-control" id="invSrcQuote" list="invQuoteList" autocomplete="off" placeholder="Quotation no. - blank if none">
+          <datalist id="invQuoteList"></datalist>
+          <button type="button" id="invSrcQuoteClear" class="qf-link-clear" title="No quotation (standalone)">×</button></div></div>
+    </div>
+
+    <div class="items-wrap">
+        <table class="items-table inv-edit-table">
+            <thead id="invThead"></thead>
+            <tbody id="invRowsBody"></tbody>
+            <tfoot id="invTfoot">
+                <tr class="inv-tax-row">
+                    <td id="invTaxLblCell" class="al-center">Withholding Tax (3.3 %)</td>
+                    <td class="al-center inv-tax-status">Included</td>
+                </tr>
+                <tr class="inv-total-row">
+                    <td class="al-center inv-total-lbl" id="invTotalLblCell">Total</td>
+                    <td class="al-center inv-total-words" id="invTotalWordsCell">No Dollars and No Cents</td>
+                    <td class="al-center inv-total-amt"   id="invTotalAmtCell">$0.00</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <div class="editor-footer">
+        <div class="count">Items: <strong id="invRowCount">0</strong></div>
+        <!-- 2026-08-25 - one control for every private figure on screen:
+             the COST + PROFIT strip and the profit/loss cards. Hiding the
+             columns while the cards still showed the same numbers would be
+             worse than no control at all. Wired by app.js initPrivacyMode(). -->
+        <button class="ghost pv-toggle icon-only" data-act="toggle-private" aria-pressed="false"
+                aria-label="Hide the COST and PROFIT columns and the profit cards"
+                title="Hide the COST and PROFIT columns and the profit cards (Ctrl+Shift+H)">
+            <span class="pv-icon"></span>
+        </button>
+        <!-- 2026-07-29 - the currency this invoice bills the client in. Same
+             widget as the COST-header switch; sits by the total it governs. -->
+        <div class="inv-sell-cur">
+            <span class="isc-lbl">Bill in</span>
+            <span id="invSellCurWrap"></span>
+            <!-- 2026-08-04 - the exchange rate the amounts were converted at.
+                 Shown only for an IQD invoice; click to re-price. Filled by
+                 renderInvPegChip() in static/inv.js. -->
+            <span id="invPegChip" hidden></span>
+        </div>
+        <div class="q-grand-live">Grand Total: <strong id="invGrandTotal">$0.00</strong></div>
+        <div class="spacer"></div>
+        <button id="btnInvPaste" class="ghost" title="Paste rows from Excel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></svg>
+            <span>Paste</span>
+        </button>
+        <button id="btnInvAddRow" class="ghost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>Add row</span>
+        </button>
+    </div>
+
+    <!-- 2026-08-04 - live cost / sell / profit / margin for this invoice.
+         PRIVATE: never printed. Filled by window.renderEconCards (static/app.js). -->
+    <div class="econ-cards" id="invEconCards"></div>
+
+    <div id="invLpoWarn" class="split-warn"></div>
+</main>
+
+<!-- ===================== INVOICE OPEN VIEW ===================== -->
+<main id="invOpenView" class="view" dir="ltr" hidden>
+    <div class="open-controls">
+        <label>Month
+            <select id="invOpenMonth"></select>
+        </label>
+        <label>Year
+            <input type="number" id="invOpenYear" min="2020" max="2100">
+        </label>
+        <button id="btnInvRefreshList" class="secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span>Refresh</span>
+        </button>
+        <div class="spacer"></div>
+        <button id="btnInvCloseOpen" class="warm-red">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            <span>Back</span>
+        </button>
+    </div>
+    <div class="filter-chips-stack">
+        <div class="filter-chips" id="invFilterChips" role="tablist" aria-label="Filter by invoice type">
+            <!-- type chips injected by inv.js -->
+        </div>
+        <div class="filter-chips filter-chips-client" id="invClientChips" role="tablist" aria-label="Filter by client">
+            <!-- client chips injected -->
+        </div>
+    </div>
+    <div id="invList" class="po-list"></div>
+</main>
+
+<!-- ===================== CLIENTS (profiles) ===================== -->
+<!-- ===================== INSIGHTS / ANALYTICS VIEW ===================== -->
+<main id="analyticsView" class="view analytics-view in-view" dir="ltr" hidden>
+    <!-- Rebuilt 2026-08-09. The static markup is only the chrome: the header,
+         the ONE filter row that scopes the whole page, and the client rail.
+         Everything below #inBody is built by static/analytics.js so the
+         all-clients and single-client layouts can differ freely. -->
+    <div class="in-head">
+        <div class="in-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg>
+            <h2>Insights</h2>
+            <span class="in-period" id="inPeriod">-</span>
+        </div>
+        <div class="in-filters">
+            <div class="in-month" id="inMonth">
+                <button type="button" id="inMonthPrev" title="Earlier" aria-label="Earlier month">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <span class="in-month-label" id="inMonthLabel">-</span>
+                <button type="button" id="inMonthNext" title="Later" aria-label="Later month">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+            </div>
+            <div class="in-span" id="inSpan" role="tablist" aria-label="Period length">
+                <button type="button" data-span="1" role="tab">1 mo</button>
+                <button type="button" data-span="3" role="tab">3 mo</button>
+                <button type="button" data-span="6" role="tab">6 mo</button>
+                <button type="button" data-span="12" role="tab" class="active">12 mo</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="in-scope">
+        <div class="in-scope-bar">
+            <h3>Clients</h3>
+            <span class="in-card-sub" id="inScopeHint">pick one to see everything about them</span>
+            <div class="in-scope-search">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="search" id="inClientSearch" placeholder="Find a client…" autocomplete="off">
+            </div>
+        </div>
+        <div class="in-rail" id="inRail"></div>
+    </div>
+
+    <div class="in-body" id="inBody"></div>
+</main>
+
+<!-- ===================== COSTING & PROFIT (Phase N.2) ===================== -->
+<!-- ============================================================
+     CLIENT LPOs (2026-07-31) - the documents clients send US.
+     A received-document store: no numbering, no generator, no template.
+     ============================================================ -->
+<main id="lpoView" class="view lpo-view" dir="ltr" hidden>
+    <div class="cl-header">
+        <div class="cl-title">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="m9 15 2 2 4-4"/></svg>
+            <h2>Client LPOs</h2>
+            <span class="lpo-count" id="lpoCount"></span>
+        </div>
+        <div class="lpo-head-actions">
+            <div class="cl-search-wrap lpo-search">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="search" id="lpoSearch" placeholder="Search LPO, item, quotation or invoice&#8230;" autocomplete="off" aria-label="Search client LPOs">
+            </div>
+            <button id="btnLpoNew" class="primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>Add LPO</span>
+            </button>
+            <button id="btnLpoClose" class="ghost">Back</button>
+        </div>
+    </div>
+
+    <!-- 2026-10-03 - three figures (Need action doubles as a filter) and the
+         type tabs, the same chip control as the Quotation and Invoice lists.
+         The client chips appear only when the LPOs span more than one client. -->
+    <div class="lpo-top">
+        <div class="lpo-figs-row" id="lpoKpis"></div>
+        <div class="filter-chips-stack lpo-chip-stack">
+            <div class="filter-chips" id="lpoKindChips" role="tablist" aria-label="Filter by LPO type"></div>
+            <div class="filter-chips filter-chips-client" id="lpoClientChips" role="tablist" aria-label="Filter by client"></div>
+        </div>
+    </div>
+    <div class="lpo-body">
+        <div id="lpoList" class="lpo-list"></div>
+        <div class="lpo-foot">
+            <span id="lpoTotals"></span>
+            <button type="button" id="lpoReferenceReview" class="lpo-inline-link" hidden></button>
+        </div>
+    </div>
+</main>
+
+<!-- ===================== ONE LPO, OPEN ===================== -->
+<!-- 2026-09-11 - clicking a row opens the client's document beside its record,
+     the same shape the PO/quotation editors use: back button and identity in
+     the topbar, the work on the left, the controls on the right. 70/30 because
+     the left pane is where the signature actually gets placed. -->
+<main id="lpoDocView" class="view lpo-doc-view" dir="ltr" hidden>
+    <div class="cl-header lpo-doc-head">
+        <!-- 2026-09-12 - the PO number leads the bar and the way out sits at the
+             far right, next to the other navigation. 2026-10-03 - the next step
+             is the one primary button; everything rare is in More. Previous /
+             Next LPO are gone (Waleed: "not very useful"). -->
+        <div class="cl-title lpo-doc-title">
+            <h2 id="lpoDocNo"></h2>
+            <span id="lpoDocChips" class="lpo-doc-chips"></span>
+        </div>
+        <div class="spacer"></div>
+        <div class="lpo-head-actions">
+            <span id="lpoDocActions" class="lpo-doc-actions"></span>
+            <span class="actions-divider"></span>
+            <button id="btnLpoDocBack" class="ghost editor-back-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+                <span>All LPOs</span>
+            </button>
+        </div>
+    </div>
+    <div class="lpo-doc-split">
+        <section class="lpo-doc-viewer" id="lpoDocViewer" aria-label="The client's document">
+            <div class="lpo-v-toolbar" id="lpoDocToolbar"></div>
+            <div class="lpo-v-file" id="lpoDocFile"></div>
+            <div class="lpo-v-hint" id="lpoVHint" hidden></div>
+            <div class="lpo-v-stage" id="lpoStage"><div class="lpo-v-canvaswrap" id="lpoCanvasWrap"></div></div>
+        </section>
+        <aside class="lpo-doc-side" id="lpoDocSide" aria-label="This LPO's details"></aside>
+    </div>
+</main>
+
+<!-- ===================== TO-DO / NEEDS ATTENTION ===================== -->
+<!-- Phase X.26+ - the "View all" target of the dashboard Needs-Attention card.
+     Organized sections (Decide bids · Uncosted · Unsubmitted · Unpaid · Ignored)
+     so the user can finish everything that's unfinished. Built by static/todo.js. -->
+<main id="todoView" class="view todo-view in-view" dir="ltr" hidden>
+    <div class="todo-controls">
+        <div class="todo-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            <h2>To-Do - needs attention</h2>
+        </div>
+        <!-- 2026-08-10 - the To-Do shows EVERYTHING outstanding by default.
+             This filter narrows it to one month on purpose; it never hides
+             anything unless the user asks it to. -->
+        <label class="todo-ctl">Show
+            <select id="todoScope">
+                <option value="all" selected>Everything outstanding</option>
+                <option value="month">One month only</option>
+            </select>
+        </label>
+        <label class="todo-ctl" id="todoMonthCtl" hidden>Month
+            <select id="todoMonth"></select>
+        </label>
+        <label class="todo-ctl" id="todoYearCtl" hidden>Year
+            <input type="number" id="todoYear" min="2020" max="2100">
+        </label>
+        <button id="todoRefresh" class="secondary" title="Refresh">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+        <div class="spacer"></div>
+        <button id="todoBack" class="warm-red">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            <span>Back</span>
+        </button>
+    </div>
+    <div class="todo-body" id="todoBody"></div>
+</main>
+
+<!-- ===================== ACTIVITY LOG (2026-10-23, admin only) =====================
+     What happened, what broke and whose fault it was - static/activity.js reads
+     backend/activity_log.py. Same pieces as the To-Do page above. -->
+<main id="activityView" class="view todo-view in-view act-view" dir="ltr" hidden>
+    <div class="todo-controls">
+        <div class="todo-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <h2>Activity log - what happened, what broke</h2>
+        </div>
+        <label class="todo-ctl">Show
+            <select id="actShow">
+                <option value="problems" selected>Problems and refusals</option>
+                <option value="all">Everything</option>
+                <option value="steps">Every step</option>
+            </select>
+        </label>
+        <label class="todo-ctl">When
+            <select id="actPeriod">
+                <option value="today">Today</option>
+                <option value="week" selected>Last 7 days</option>
+                <option value="month">Last 30 days</option>
+                <option value="all">Everything kept</option>
+            </select>
+        </label>
+        <label class="todo-ctl">Who
+            <select id="actPerson"><option value="">Everyone</option></select>
+        </label>
+        <input type="search" id="actSearch" class="todo-search act-search" placeholder="Search words, numbers, people" aria-label="Search the activity log" autocomplete="off">
+        <button id="actRefresh" class="secondary" title="Refresh">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+        <div class="spacer"></div>
+        <button id="actBack" class="warm-red">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            <span>Back</span>
+        </button>
+    </div>
+    <div class="todo-body" id="actBody"></div>
+</main>
+
+<!-- ===================== FLOATING AUTOCOMPLETE ===================== -->
+<!-- At body level (NOT inside editorView) so display:none on a hidden editor
+     doesn't blank it out. Phase G.14. -->
+<div id="acBox" class="ac-box" hidden></div>
+
+<!-- ===================== TOAST ===================== -->
+<!-- 2026-08-05 - busy bar. Body level like #toast, so no view's display:none can
+     hide it. Driven by beginBusy/endBusy (app.js), NOT by any button, because
+     the old in-button spinner silently died when its button was removed. -->
+<div id="busyBar" class="busy-bar" role="progressbar" aria-label="Working" aria-busy="true" hidden><span></span></div>
+<div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+
+<!-- ===================== CONFIRM MODAL ===================== -->
+<!-- The app-wide confirm dialog is BUILT, not markup: static/popup.js owns
+     every popup so they cannot drift apart (see docs/14-UI-CONTRACTS.md).
+     `showModal` stamps the old ids (modalBackdrop / modalTitle / modalBody /
+     modalActions) onto the live panel, so the handful of callers that reach
+     into it by id keep working. -->
+
+<!-- ===================== CLIENT PROMPT MODAL (rename / add) ===================== -->
+<div id="dmClPromptBackdrop" class="modal-backdrop popup-backdrop" hidden>
+    <div class="modal popup popup-sm dm-cl-prompt" dir="ltr" role="dialog" aria-modal="true" aria-labelledby="dmClPromptTitle">
+        <div class="popup-head">
+            <div class="popup-heading">
+                <div class="modal-title popup-title" id="dmClPromptTitle">Rename client</div>
+            </div>
+            <button type="button" class="popup-close" data-popup-close aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body popup-body">
+            <div id="dmClPromptMsg" class="helper subtle"></div>
+            <input type="text" id="dmClPromptInput" class="dm-cl-prompt-input" autocomplete="off" spellcheck="false">
+            <div id="dmClPromptHint" class="dm-cl-prompt-hint"></div>
+        </div>
+        <div class="modal-actions popup-actions">
+            <button id="dmClPromptCancel" class="ghost">Cancel</button>
+            <button id="dmClPromptOk" class="primary">OK</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== SIGN DOCUMENT MODAL (Phase K.1) ===================== -->
+<div id="signBackdrop" class="modal-backdrop popup-backdrop" hidden>
+    <div class="modal popup popup-md sign-modal" role="dialog" aria-modal="true" aria-labelledby="signPopupTitle">
+        <div class="popup-head">
+            <div class="popup-heading">
+                <div class="modal-title popup-title" id="signPopupTitle">Sign document</div>
+            </div>
+            <button type="button" class="popup-close" data-popup-close aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body popup-body">
+            <div id="signSlots" class="sign-slots"></div>
+            <div id="signEmpty" class="helper subtle" hidden>
+                You haven't uploaded any signatures or a stamp yet. Open <strong>App settings → Digital Signatures &amp; Stamp</strong> first.
+            </div>
+            <div class="helper subtle">
+                A small natural offset and rotation are rolled each time you press Apply, so re-signing gives a slightly different placement.
+            </div>
+        </div>
+        <div class="modal-actions popup-actions">
+            <button id="signClear"  class="ghost danger-text">Clear all</button>
+            <span class="spacer"></span>
+            <button id="signCancel" class="ghost">Cancel</button>
+            <button id="signApply"  class="primary">Apply &amp; reroll</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== DATA MANAGER - CATALOG EDIT MODAL ===================== -->
+<div id="dmEditBackdrop" class="modal-backdrop popup-backdrop" hidden>
+    <div class="modal popup popup-md dm-edit-modal" role="dialog" aria-modal="true" aria-labelledby="dmEditPopupTitle">
+        <div class="popup-head">
+            <div class="popup-heading">
+                <div class="modal-title popup-title" id="dmEditPopupTitle">Edit catalog entry</div>
+            </div>
+            <button type="button" class="popup-close" data-popup-close aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body popup-body">
+            <div id="dmEditFields" class="dm-edit-fields"></div>
+            <div class="helper subtle">
+                Editing only changes the autocomplete catalog. Any document you already saved is left alone.
+                If your new values match another existing entry, the two are merged (their usage counts are summed).
+            </div>
+        </div>
+        <div class="modal-actions popup-actions">
+            <button id="dmEditCancel" class="ghost">Cancel</button>
+            <button id="dmEditSave"   class="primary">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ===================== BULK PASTE / IMPORT WIZARD ===================== -->
+<div id="bulkBackdrop" class="modal-backdrop popup-backdrop" hidden>
+    <div class="modal popup popup-xl bulk-modal" dir="ltr" role="dialog" aria-modal="true" aria-labelledby="bulkPopupTitle">
+        <div class="popup-head">
+            <div class="popup-heading">
+                <div class="modal-title popup-title" id="bulkPopupTitle">Paste / Import rows</div>
+            </div>
+            <button type="button" class="popup-close" data-popup-close aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body popup-body">
+            <!-- Step 1 - paste zone -->
+            <div id="bulkStep1">
+                <div id="bulkDrop" class="bulk-drop">
+                    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8z"/><polyline points="16 3 16 8 21 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>
+                    <div class="bulk-drop-title">Paste your rows here</div>
+                    <div class="bulk-drop-sub">Copy a block of cells in Excel, click here and press <kbd>Ctrl</kbd>+<kbd>V</kbd><br>- or drop a .csv / .tsv file</div>
+                    <textarea id="bulkPasteCatcher" class="bulk-catcher" aria-label="Paste target" spellcheck="false"></textarea>
+                </div>
+            </div>
+            <!-- Step 2 - map + preview -->
+            <div id="bulkStep2" hidden>
+                <div class="bulk-controls">
+                    <label class="bulk-check"><input type="checkbox" id="bulkHasHeader"> First row is a header</label>
+                    <span class="bulk-controls-sep"></span>
+                    <label class="bulk-check"><input type="radio" name="bulkMode" value="append" checked> Append</label>
+                    <label class="bulk-check"><input type="radio" name="bulkMode" value="replace"> Replace all</label>
+                    <span class="spacer" style="flex:1"></span>
+                    <button type="button" class="link" id="bulkRepaste">↺ Paste again</button>
+                </div>
+                <div class="bulk-grid-wrap">
+                    <table class="bulk-grid" id="bulkGrid"></table>
+                </div>
+                <div class="bulk-summary subtle" id="bulkSummary"></div>
+            </div>
+        </div>
+        <div class="modal-actions popup-actions">
+            <button id="bulkCancel" class="ghost">Cancel</button>
+            <button id="bulkCommit" class="primary" disabled>Add rows</button>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     Phase M.6 - Persistent right-side Open panel
+     ============================================================
+     Always-visible drawer for the active editor (PO / QUT / DN / INV).
+     Each <div class="op-pane"> hosts the Open controls for ONE section: at
+     boot, open_panel.js MOVES the existing year/month/chips/list elements
+     from each standalone *OpenView into the matching pane. That way every
+     existing render function keeps working - they still target the same IDs,
+     just from inside the panel. The standalone *OpenView pages are hidden
+     forever; the panel replaces them. -->
+<aside id="openPanel" class="op" dir="ltr" data-active="" hidden>
+    <div class="op-bar">
+        <button id="opCollapseBtn" class="op-ico-btn" title="Collapse panel" aria-label="Collapse panel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+        </button>
+        <h3 class="op-title" id="opTitle">Files</h3>
+        <button id="opRefreshBtn" class="op-ico-btn" title="Refresh" aria-label="Refresh">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        </button>
+    </div>
+    <div class="op-search">
+        <svg class="op-search-ico" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="opSearch" placeholder="Search by number, client, filename…" autocomplete="off" spellcheck="false">
+        <button id="opSearchClear" class="op-search-clear" title="Clear" hidden>×</button>
+    </div>
+    <!-- Per-section panes (filled at boot by open_panel.js).
+         Each pane will contain: .op-controls (year/month) + chip rows + list. -->
+    <div class="op-pane" data-section="po"  hidden></div>
+    <div class="op-pane" data-section="qut" hidden></div>
+    <div class="op-pane" data-section="dn"  hidden></div>
+    <div class="op-pane" data-section="inv" hidden></div>
+</aside>
+<!-- Collapsed-state edge tab - clicking it expands the panel. -->
+<button id="opExpandTab" class="op-expand-tab" title="Show files panel" aria-label="Show files panel" hidden>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+</button>
+
+<!-- FIRST of the app's scripts: the activity log must already be listening
+     when the others start, or an error while they load goes unrecorded. -->
+<script src="../static/activity_capture.js"></script>
+<script src="../static/cropper.min.js"></script>
+<!-- signing.js + bulk_paste.js MUST load before every editor script so their
+     top-level `if (window.signingRegister)` / `if (window.bulkPasteRegister)`
+     checks all succeed. Both are self-contained - no dependency on app.js. -->
+<script src="../static/popup.js"></script>
+<!-- One place for "you have unsaved changes" - must load before the editors -->
+<script src="../static/unsaved_guard.js"></script>
+<script src="../static/item_review_popup.js"></script>
+<script src="../static/signing.js"></script>
+<script src="../static/signed_copy.js"></script>
+<script src="../static/bulk_paste.js"></script>
+<script src="../static/lib/lottie.min.js"></script>
+<script src="../static/lib/apexcharts.min.js"></script>
+<script src="../static/gate.js"></script>
+<script src="../static/app.js"></script>
+<script src="../static/grid_paste.js"></script>
+<script src="../static/master_data_fill.js"></script>
+<!-- After master_data_fill.js (it consumes window.MasterDataFill) and before
+     dn.js / inv.js, which register the hooks it hands off to. -->
+<script src="../static/po_handoff.js"></script>
+<script src="../static/quote.js"></script>
+<script src="../static/dn.js"></script>
+<script src="../static/inv.js"></script>
+<script src="../static/client_defaults.js"></script>
+<script src="../static/client_required.js"></script>
+<script src="../static/doc_settings.js"></script>
+<script src="../static/data_manager.js"></script>
+<script src="../static/master_doctor.js"></script>
+<script src="../static/item_master.js"></script>
+<script src="../static/client_master.js"></script>
+<script src="../static/analytics.js"></script>
+<script src="../static/doc_verify.js"></script>
+<script src="../static/todo.js"></script>
+<script src="../static/activity.js"></script>
+<script src="../static/po_link.js"></script>
+<script src="../static/document_workflow.js"></script>
+<script src="../static/lib/pdf.min.js"></script>
+<script src="../static/lpo.js"></script>
+<script src="../static/lpo_lines.js"></script>
+<script src="../static/lpo_picker.js"></script>
+<script src="../static/quote_picker.js"></script>
+<script src="../static/col_resize.js"></script>
+<!-- Phase M.6 - Right-side panel controller. Must load LAST so all section
+     refresh functions (refreshPoList / refreshQuoteList / …) are already
+     defined on `window` when the panel binds. The script declares its globals
+     at file scope, so they're reachable from open_panel.js via window. -->
+<script>
+    // Cross-script globals - top-level function declarations become window props
+    // automatically, but only if they're not inside IIFEs. Make explicitly sure.
+    if (typeof refreshPoList    === "function") window.refreshPoList    = refreshPoList;
+    if (typeof refreshQuoteList === "function") window.refreshQuoteList = refreshQuoteList;
+    if (typeof refreshDnList    === "function") window.refreshDnList    = refreshDnList;
+    if (typeof refreshInvList   === "function") window.refreshInvList   = refreshInvList;
+</script>
+<script src="../static/open_panel.js"></script>
+<!-- Finding reference pictures online. The shared popup box like everything
+     else (2026-08-26, docs/14-UI-CONTRACTS.md); it is mounted NOT dismissible,
+     because a run is in flight and Esc would hide the log the run exists to
+     produce. Cancel stops it; Close appears when it is over. -->
+<div class="modal-backdrop popup-backdrop" id="imgFetchBackdrop" hidden>
+  <div class="modal popup popup-md imgf-panel" role="dialog" aria-modal="true" aria-labelledby="imgFetchTitle">
+    <div class="popup-head">
+      <div class="popup-heading">
+        <div class="modal-title popup-title" id="imgFetchTitle">Finding pictures</div>
+        <div class="popup-sub">Searching the web for a reference picture for each row that
+          has none. Rows that already have a picture are left alone.</div>
+      </div>
+    </div>
+    <div class="modal-body popup-body">
+    <div class="imgf-progress" role="progressbar" aria-valuemin="0" aria-valuenow="0" aria-valuemax="1">
+      <div class="imgf-bar" id="imgFetchBar"></div>
+    </div>
+    <div class="imgf-status">
+      <span class="imgf-now" id="imgFetchNow">Starting…</span>
+      <span class="imgf-count" id="imgFetchCount"></span>
+    </div>
+    <div class="imgf-tally" id="imgFetchTally" aria-live="polite"></div>
+
+    <div class="imgf-log" id="imgFetchLog" role="log" aria-label="Results so far"></div>
+    </div>
+
+    <div class="modal-actions popup-actions">
+      <button type="button" class="ghost" id="imgFetchCancel">Cancel</button>
+      <button type="button" class="primary" id="imgFetchClose" hidden>Close</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

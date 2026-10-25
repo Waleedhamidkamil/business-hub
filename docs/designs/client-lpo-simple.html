@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Client LPOs Simplified</title>
+<style>
+/* Second proposal, after Waleed asked for "only what is necessary" and for tabs
+   like the Materials / Equipment / Manpower / Service ones on the Quotation and
+   Invoice lists. The chip row below copies the real `.filter-chip` component
+   (app_styles.css) so it reads as the same control. Real Abraj data, 3 Oct 2026.
+   Status is always a word, never a colour alone; no red or green anywhere. */
+@font-face { font-family: Roboto; src: url("../../static/fonts/Roboto-VariableFont.ttf"); font-weight: 100 900; }
+:root {
+  --bg: #F8FAFC; --surface: #FFFFFF; --sunk: #F1F3F5; --border: #E4E7EB; --border-strong: #CBD2D9;
+  --text: #0F172A; --muted: #475569; --subtle: #94A3B8; --navy: #1E3A5F; --navy-soft: rgba(30, 58, 95, .07);
+  --amber: #9A5A06; --amber-soft: #FEF3C7; --amber-line: #E7B556; --paper: #FFFFFF;
+  --font: Roboto, "Segoe UI", system-ui, sans-serif; --ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --shadow: 0 1px 3px rgba(15, 23, 42, .06), 0 1px 2px rgba(15, 23, 42, .04);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0D131C; --surface: #151D29; --sunk: #101722; --border: #263244; --border-strong: #34445C;
+  --text: #E7ECF3; --muted: #A3B1C3; --subtle: #7D8CA0; --navy: #BCD0EA; --navy-soft: rgba(188, 208, 234, .10);
+  --amber: #F2C26B; --amber-soft: #3A2E17; --amber-line: #A07A2E; --paper: #EDEFF2; --shadow: none; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0D131C; --surface: #151D29; --sunk: #101722; --border: #263244; --border-strong: #34445C;
+  --text: #E7ECF3; --muted: #A3B1C3; --subtle: #7D8CA0; --navy: #BCD0EA; --navy-soft: rgba(188, 208, 234, .10);
+  --amber: #F2C26B; --amber-soft: #3A2E17; --amber-line: #A07A2E; --paper: #EDEFF2; --shadow: none; color-scheme: dark }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--text); font: 14px/1.5 var(--font); -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 28px 20px 72px; display: grid; gap: 22px; }
+h1 { font-size: 26px; margin: 0; letter-spacing: -.015em; }
+h2 { font-size: 19px; margin: 0; }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lede { color: var(--muted); max-width: 80ch; margin: 0; }
+.num { font-variant-numeric: tabular-nums; }
+.sheetbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; position: sticky; top: 0; z-index: 9; background: var(--bg); padding: 8px 0; }
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 9px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 8px 14px; font-weight: 500; font-size: 13px; }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button[aria-pressed="true"] { background: var(--text); color: var(--surface); }
+.sheetbar .sp { flex: 1; }
+.ghostbtn { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 7px 12px; font-size: 13px; font-weight: 500; }
+
+/* ---- app frame ---- */
+.frame { background: var(--bg); border: 1px solid var(--border-strong); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+.screen { padding: 18px 20px 20px; display: grid; gap: 12px; }
+.btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 8px;
+  padding: 7px 13px; font-size: 13px; font-weight: 600; white-space: nowrap; transition: transform 120ms var(--ease); }
+.btn:active { transform: scale(.97); }
+.btn.primary { background: var(--navy); border-color: var(--navy); color: var(--surface); }
+.btn.sm { padding: 4px 10px; font-size: 12px; font-weight: 600; }
+.btn.quiet { border-color: transparent; background: transparent; color: var(--muted); }
+.btn svg { width: 15px; height: 15px; }
+.head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.head h3 { margin: 0; font-size: 20px; letter-spacing: -.01em; display: flex; align-items: center; gap: 8px; }
+.pill { font-size: 12px; border: 1px solid var(--border); border-radius: 999px; padding: 1px 9px; color: var(--muted); font-weight: 500; }
+.search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 8px; padding: 7px 10px;
+  color: var(--subtle); font-size: 13px; min-width: 260px; }
+.sp { flex: 1; }
+
+/* the three figures */
+.figs { display: flex; flex-wrap: wrap; gap: 8px 28px; padding: 2px 2px 0; }
+.figs div { display: flex; align-items: baseline; gap: 8px; }
+.figs small { font-size: 12px; color: var(--muted); }
+.figs b { font-size: 17px; }
+.figs .todo b { color: var(--amber); }
+
+/* chip tabs: a copy of app_styles.css .filter-chip */
+.filter-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 0 12px; border-bottom: 1px solid var(--border); }
+.filter-chip { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: 1px solid var(--border-strong); border-radius: 999px;
+  background: var(--surface); color: var(--muted); font-size: 13px; font-weight: 600; transition: background 120ms ease, color 120ms ease, border-color 120ms ease; }
+.filter-chip:hover { color: var(--navy); border-color: var(--navy); }
+.filter-chip.is-active { background: var(--navy); color: var(--surface); border-color: var(--navy); }
+.chip-count { display: inline-block; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: rgba(0,0,0,.08); font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+.filter-chip.is-active .chip-count { background: rgba(255,255,255,.22); }
+
+/* the table: columns change with the tab, like a quotation's type */
+.tbl { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.tbl-scroll { overflow-x: auto; }
+table.l { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 820px; }
+.l th { text-align: left; font-size: 11.5px; font-weight: 600; color: var(--muted); background: var(--sunk); padding: 9px 12px; white-space: nowrap; }
+.l td { padding: 11px 12px; border-top: 1px solid var(--border); vertical-align: middle; }
+.l tbody tr { cursor: pointer; transition: background 120ms ease; }
+.l tbody tr:hover { background: var(--navy-soft); }
+.l .r { text-align: right; }
+.l .no { font-weight: 600; white-space: nowrap; }
+.l .sub { display: block; font-size: 11.5px; color: var(--muted); font-weight: 400; }
+.l tr.closed td { color: var(--subtle); }
+.l tr.closed .no { text-decoration: line-through; }
+.l .next { white-space: nowrap; }
+.kind { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); border: 1px solid var(--border-strong); border-radius: 5px; padding: 1px 7px; white-space: nowrap; }
+.frac { display: grid; gap: 4px; min-width: 110px; }
+.frac span { font-size: 12.5px; }
+.bar { height: 5px; border-radius: 3px; background: var(--sunk); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--navy); }
+.note { font-size: 12px; color: var(--amber); font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+.note::before { content: ""; width: 7px; height: 7px; border: 2px solid currentColor; transform: rotate(45deg); flex: none; }
+.done { font-size: 12px; color: var(--muted); }
+.foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12.5px; color: var(--muted); padding: 2px 2px 0; }
+.foot button { border: 0; background: none; color: var(--navy); font-weight: 600; padding: 0; }
+
+/* ---- viewer ---- */
+.vhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.vhead h3 { margin: 0; font-size: 20px; letter-spacing: -.01em; }
+.status { font-size: 12px; font-weight: 600; color: var(--muted); display: inline-flex; align-items: center; gap: 5px; }
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--navy); }
+.stepper { display: inline-flex; align-items: center; gap: 2px; color: var(--muted); font-size: 12.5px; margin-left: 4px; }
+.icob { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); }
+.icob svg { width: 15px; height: 15px; }
+.vbody { display: grid; grid-template-columns: 1fr 380px; gap: 14px; align-items: start; }
+@media (max-width: 980px) { .vbody { grid-template-columns: 1fr; } }
+.doc { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; display: grid; }
+.dtools { display: flex; align-items: center; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.dtools .sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+.switch { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 7px; overflow: hidden; }
+.switch button { border: 0; background: transparent; padding: 5px 10px; font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.switch button.on { background: var(--navy); color: var(--surface); }
+.stage { background: var(--sunk); padding: 22px; display: grid; place-items: center; min-height: 540px; }
+.page { width: min(100%, 520px); aspect-ratio: 1 / 1.414; background: var(--paper); box-shadow: 0 2px 10px rgba(15,23,42,.12); border-radius: 2px; padding: 7% 8%; display: grid; align-content: start; gap: 10px; color: #333; }
+.page .logo { font-weight: 800; font-size: 20px; letter-spacing: .02em; color: #555; }
+.page .title { text-align: center; font-weight: 700; text-decoration: underline; font-size: 12px; margin: 10px 0; }
+.page i { display: block; height: 6px; border-radius: 2px; background: #E3E6EA; }
+.page .stamp { justify-self: end; width: 26%; aspect-ratio: 1; border: 2px solid #4A6A9A; border-radius: 50%; display: grid; place-items: center; color: #4A6A9A; font-size: 9px; font-weight: 700; transform: rotate(-12deg); margin-top: 12px; }
+.panel { display: grid; gap: 12px; }
+.box { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; display: grid; gap: 10px; }
+.box h4 { margin: 0; font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+.meta { font-size: 13px; color: var(--muted); }
+.meta a, .link { color: var(--navy); font-weight: 600; text-decoration: none; border: 0; background: none; padding: 0; font-size: inherit; }
+.trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.trio div { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; }
+.trio small { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.trio b { font-size: 15px; }
+.signed { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.signed .ok { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: var(--navy-soft); color: var(--navy); flex: none; }
+.signed .ok svg { width: 14px; height: 14px; }
+.signed .btn { margin-left: auto; }
+table.items { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.items th { text-align: right; font-size: 11px; font-weight: 600; color: var(--muted); padding: 5px 4px; border-bottom: 1px solid var(--border); }
+.items th:first-child, .items td:first-child { text-align: left; }
+.items td { padding: 7px 4px; border-bottom: 1px solid var(--border); text-align: right; }
+.items tr:last-child td { border-bottom: 0; }
+.items .left { font-weight: 700; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.dchip { border: 1px solid var(--border-strong); border-radius: 6px; padding: 3px 8px; font-size: 12px; font-weight: 600; background: var(--surface); color: var(--navy); }
+.periods { display: grid; }
+.prow { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+.prow:last-child { border-bottom: 0; }
+.prow b { font-weight: 600; }
+.prow .st { font-size: 12px; color: var(--muted); }
+.prow.nextp { background: var(--navy-soft); margin: 0 -8px; padding: 7px 8px; border-radius: 6px; }
+details.more summary { cursor: pointer; font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 600; list-style: none; }
+details.more summary::after { content: " +"; }
+details.more[open] summary::after { content: " -"; }
+dl.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 10px 0 0; font-size: 13px; }
+dl.kv dt { color: var(--muted); }
+dl.kv dd { margin: 0; text-align: right; }
+.menu { position: relative; }
+.pop { position: absolute; right: 0; top: calc(100% + 6px); width: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(15,23,42,.16); padding: 6px; display: grid; z-index: 4; transform-origin: top right; transition: opacity 140ms var(--ease), transform 160ms var(--ease); }
+.pop[hidden] { display: grid; opacity: 0; transform: scale(.96); pointer-events: none; }
+.pop button { text-align: left; border: 0; background: transparent; padding: 7px 9px; border-radius: 6px; font-size: 13px; }
+.pop button:hover { background: var(--sunk); }
+.pop hr { border: 0; border-top: 1px solid var(--border); margin: 4px 0; }
+.pop .danger { color: var(--amber); }
+
+/* ---- explanation ---- */
+.why { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.why > div { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.why b { font-size: 13.5px; }
+.why p { margin: 0; color: var(--muted); font-size: 13px; }
+@media (max-width: 860px) { .why { grid-template-columns: 1fr; } }
+.cmp { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.cmp table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.cmp th { text-align: left; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); background: var(--sunk); padding: 9px 14px; }
+.cmp td { padding: 10px 14px; border-top: 1px solid var(--border); vertical-align: top; }
+.cmp td:first-child { color: var(--muted); width: 38%; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header style="display:grid;gap:6px">
+  <span class="eyebrow">Client LPOs - simplified proposal</span>
+  <h1>One list with type tabs, and a cleaner LPO screen</h1>
+  <p class="lede">Only what is needed. The tabs work like the Materials / Equipment / Manpower / Service chips on the Quotation and Invoice lists, and each tab shows the columns that matter for that kind of LPO. Your real Abraj LPOs, 3 October 2026. Click a row or the tabs to try it.</p>
+</header>
+
+<div class="sheetbar">
+  <div class="seg" id="screenSeg">
+    <button aria-pressed="true" data-s="list">LPO list</button>
+    <button aria-pressed="false" data-s="viewer">LPO screen</button>
+  </div>
+  <span class="sp"></span>
+  <button class="ghostbtn" id="themeBtn" type="button">Dark mode</button>
+</div>
+
+<!-- ============================================================ LIST -->
+<section data-screen="list" style="display:grid;gap:14px">
+  <div class="frame"><div class="screen">
+    <div class="head">
+      <h3>Client LPOs <span class="pill">8 on file</span></h3>
+      <span class="sp"></span>
+      <div class="search">Search LPO, item, quotation or invoice</div>
+      <button class="btn primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add LPO</button>
+      <button class="btn">Back</button>
+    </div>
+    <div class="figs">
+      <div><small>Ordered</small><b class="num">$78,892.80</b></div>
+      <div><small>Not invoiced yet</small><b class="num">$5,863.40</b></div>
+      <div class="todo"><small>Need action</small><b class="num">4</b></div>
+    </div>
+    <div class="filter-chips" id="kindChips" role="tablist" aria-label="Filter by LPO type">
+      <button class="filter-chip is-active" data-k="all"><span>All</span><span class="chip-count">8</span></button>
+      <button class="filter-chip" data-k="materials"><span>Materials</span><span class="chip-count">3</span></button>
+      <button class="filter-chip" data-k="rental"><span>Rentals</span><span class="chip-count">4</span></button>
+      <button class="filter-chip" data-k="open"><span>Supply contracts</span><span class="chip-count">1</span></button>
+    </div>
+    <div class="tbl"><div class="tbl-scroll" id="listTable"></div></div>
+    <div class="foot"><span>Closed LPOs stay at the bottom, struck through. Click any row to open it.</span><button>15 invoice references are not matched to an LPO - review</button></div>
+  </div></div>
+
+  <div class="why">
+    <div><b>Tabs like quotations</b><p>All, Materials, Rentals, Supply contracts. The same chip control with counts as the Quotation and Invoice lists, so it already feels familiar.</p></div>
+    <div><b>Each tab, its own columns</b><p>Materials shows items delivered and invoiced. Rentals shows the period and months billed. Supply contracts shows the unit price and months not invoiced.</p></div>
+    <div><b>A "Next step" on every row</b><p>The one thing to do next, as a button: Create invoice, Create delivery note, Invoice September. Up to date rows just say so. No separate to-do panel needed.</p></div>
+  </div>
+</section>
+
+<!-- ============================================================ VIEWER -->
+<section data-screen="viewer" hidden style="display:grid;gap:14px">
+  <div class="frame"><div class="screen">
+    <div class="vhead">
+      <button class="btn quiet" title="Back to the list (Esc)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>LPOs</button>
+      <h3 id="vNo">LPO CSSP-ADM-0033</h3>
+      <span class="kind" id="vKind">Materials</span>
+      <span class="status" id="vStatus">Delivered</span>
+      <span class="stepper"><button class="icob" title="Previous LPO (Left arrow)" data-step="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <span id="vPos">5 of 8</span>
+        <button class="icob" title="Next LPO (Right arrow)" data-step="1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button></span>
+      <span class="sp"></span>
+      <span id="vActions"></span>
+      <div class="menu">
+        <button class="btn" id="moreBtn" aria-haspopup="menu" aria-expanded="false">More <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>
+        <div class="pop" id="morePop" role="menu" hidden>
+          <button role="menuitem">Open in PDF reader</button>
+          <button role="menuitem">Print</button>
+          <button role="menuitem">Copy file</button>
+          <button role="menuitem">Show in folder</button>
+          <hr>
+          <button role="menuitem">Edit details</button>
+          <button role="menuitem">Replace file</button>
+          <hr>
+          <button role="menuitem">Close LPO</button>
+          <button role="menuitem" class="danger">Remove</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="vbody">
+      <div class="doc">
+        <div class="dtools">
+          <button class="icob" title="Previous page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <span>Page 1 of 2</span>
+          <button class="icob" title="Next page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+          <span class="sep"></span>
+          <button class="icob" title="Zoom out">-</button><span>100%</span><button class="icob" title="Zoom in">+</button>
+          <button class="btn sm">Fit width</button>
+          <span class="sp"></span>
+          <div class="switch" id="fileSwitch"><button>Original</button><button class="on">Signed copy</button></div>
+        </div>
+        <div class="stage">
+          <div class="page">
+            <div class="logo">HYUNDAI E&amp;C</div>
+            <i style="width:55%"></i><i style="width:40%"></i>
+            <div class="title">PURCHASE ORDER</div>
+            <i></i><i style="width:92%"></i><i style="width:80%"></i><i></i><i style="width:70%"></i>
+            <i style="width:88%"></i><i style="width:60%"></i>
+            <div class="stamp" id="stampMark">ABRAJ<br>ALBADR</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="vPanel"></div>
+    </div>
+  </div></div>
+
+  <div class="cmp">
+    <table>
+      <thead><tr><th>Today</th><th>Proposed</th></tr></thead>
+      <tbody>
+        <tr><td>Ten buttons of equal size in a grid; "Create invoice" still green on a closed LPO</td><td>One or two main buttons for the next step; the rest in a "More" menu; nothing offered that cannot be done</td></tr>
+        <tr><td>"Sign and stamp" is a big green button even after the copy is signed</td><td>A "Signed copy" line: saved, with a View link, or not yet, with the Sign button right there</td></tr>
+        <tr><td>Rental billing shows periods, then the invoices again in a second list</td><td>One period list: each month says Billed with its invoice number, or has its own Invoice button</td></tr>
+        <tr><td>"All LPOs" is the darkest button on the page, Previous / Next are big text buttons</td><td>A small "LPOs" back link and a compact "5 of 8" stepper; arrow keys and Esc work too</td></tr>
+        <tr><td>Details always open at the top, before what matters</td><td>Three figures first, then items or periods; details folded at the bottom</td></tr>
+        <tr><td>No fit-to-width</td><td>"Fit width" in the PDF toolbar; the zoom you pick is remembered</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</div>
+
+<script>
+// Demo only: tab switching, rows, and the two LPO screen examples.
+(function () {
+  const $ = (s, r = document) => r.querySelector(s);
+  const seg = $("#screenSeg");
+  const showScreen = (s) => {
+    seg.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.s === s)));
+    document.querySelectorAll("[data-screen]").forEach(x => { x.hidden = x.dataset.screen !== s; });
+  };
+  seg.addEventListener("click", e => { const b = e.target.closest("button"); if (b) showScreen(b.dataset.s); });
+
+  const themeBtn = $("#themeBtn");
+  const dark = () => document.documentElement.dataset.theme === "dark"
+    || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
+  const label = () => { themeBtn.textContent = dark() ? "Light mode" : "Dark mode"; };
+  themeBtn.addEventListener("click", () => { document.documentElement.dataset.theme = dark() ? "light" : "dark"; label(); });
+  label();
+
+  const frac = (txt, pct) => `<div class="frac"><span>${txt}</span><div class="bar"><i style="width:${pct}%"></i></div></div>`;
+  const nb = (t, primary) => `<button class="btn sm${primary ? " primary" : ""}">${t}</button>`;
+  // [kind, lpo, sub, cells by tab]
+  const L = [
+    { k: "materials", no: "LPO CSSP-ADM-0033", sub: "HDEC · 26 Sep", items: "2", deliv: frac("2 of 2", 100), inv: frac("0 of 2", 0), value: "$490.00",
+      prog: frac("delivered, $0.00 invoiced", 50), next: nb("Create invoice", true) },
+    { k: "materials", no: "CSSP-ADM-0017", sub: "HDEC · 24 Jul", items: "12", deliv: frac("0 of 12", 0), inv: frac("0 of 12", 0), value: "$273.40",
+      prog: frac("nothing delivered yet", 0), next: nb("Create delivery note", true) },
+    { k: "rental", no: "CSSP-RENT-0004", sub: "HDEC · 24 Jul", period: "24 Jul onwards<span class='sub'><span class='note'>no end date</span></span>", months: frac("2 billed", 100),
+      billed: "$15,600.00 <span class='sub'>of $15,600.00</span>", value: "$15,600.00", prog: frac("2 months billed, September open", 100), next: nb("Invoice September", true) },
+    { k: "rental", no: "CSSP-RENT-0002", sub: "HDEC · 4 Jun", period: "8 Jun - 8 Jan", months: frac("4 of 7", 57),
+      billed: "$6,800.00 <span class='sub'>of $11,900.00</span>", value: "$11,900.00", prog: frac("4 of 7 months billed", 57), next: "<span class='done'>Up to date · next 8 Oct</span>" },
+    { k: "rental", no: "CSSP-RENT-0005(3)", sub: "HDEC · 26 Aug", period: "12 Aug - 11 Nov", months: frac("3 of 3", 100),
+      billed: "$5,100.00 <span class='sub'>of $5,100.00</span>", value: "$5,100.00", prog: frac("3 of 3 months billed", 100), next: "<span class='note'>Ends 11 Nov</span>" },
+    { k: "open", no: "CSSP-OPEN-0001", sub: "HDEC · 15 May", item: "Supply of Diesel", price: "$0.77 per L", invoices: "0", unbilled: "<span class='note'>6 months, from May</span>",
+      value: "<span class='done'>no ceiling</span>", prog: "<span class='note'>6 months not invoiced</span>", next: nb("Invoice May", true) },
+    { k: "materials", no: "CSSP-ADM-0010", sub: "HDEC · 9 Jul", closed: true, items: "4", deliv: frac("4 of 4", 100), inv: frac("4 of 4", 100), value: "$18,390.00",
+      prog: frac("fully invoiced", 100), next: "<span class='done'>Closed</span>" },
+    { k: "rental", no: "CSSP-RENT-0001", sub: "HDEC · 18 May", closed: true, period: "18 Apr - 12 Aug", months: frac("4 of 4", 100),
+      billed: "$27,139.40 <span class='sub'>of $27,139.40</span>", value: "$27,139.40", prog: frac("4 of 4 months billed", 100), next: "<span class='done'>Closed</span>" },
+  ];
+  const KIND = { materials: "Materials", rental: "Rental", open: "Supply contract" };
+  const COLS = {
+    all:       [["LPO", r => `<span class="no">${r.no}</span><span class="sub">${r.sub}</span>`], ["Type", r => `<span class="kind">${KIND[r.k]}</span>`],
+                ["Progress", r => r.prog], ["Value", r => r.value, "r"], ["Next step", r => r.next, "next"]],
+    materials: [["LPO", r => `<span class="no">${r.no}</span><span class="sub">${r.sub}</span>`], ["Items", r => r.items, "r"], ["Delivered", r => r.deliv],
+                ["Invoiced", r => r.inv], ["Value", r => r.value, "r"], ["Next step", r => r.next, "next"]],
+    rental:    [["LPO", r => `<span class="no">${r.no}</span><span class="sub">${r.sub}</span>`], ["Period", r => r.period], ["Months billed", r => r.months],
+                ["Billed", r => r.billed, "r"], ["Next step", r => r.next, "next"]],
+    open:      [["LPO", r => `<span class="no">${r.no}</span><span class="sub">${r.sub}</span>`], ["Supplying", r => r.item], ["Unit price", r => r.price],
+                ["Invoices", r => r.invoices, "r"], ["Not invoiced", r => r.unbilled], ["Next step", r => r.next, "next"]],
+  };
+  let kind = "all";
+  const paint = () => {
+    const rows = L.filter(r => kind === "all" || r.k === kind);
+    const cols = COLS[kind];
+    $("#listTable").innerHTML = `<table class="l"><thead><tr>${cols.map(c => `<th class="${c[2] === "r" ? "r" : ""}">${c[0]}</th>`).join("")}</tr></thead>
+      <tbody>${rows.map(r => `<tr class="${r.closed ? "closed" : ""}" data-no="${r.no}">${cols.map(c => `<td class="${c[2] || ""}">${c[1](r)}</td>`).join("")}</tr>`).join("")}</tbody></table>`;
+  };
+  $("#kindChips").addEventListener("click", e => {
+    const b = e.target.closest(".filter-chip"); if (!b) return;
+    kind = b.dataset.k;
+    $("#kindChips").querySelectorAll(".filter-chip").forEach(x => x.classList.toggle("is-active", x === b));
+    paint();
+  });
+  paint();
+
+  // ---- LPO screen: a materials example and a rental example ----
+  const V = {
+    "LPO CSSP-ADM-0033": { kind: "Materials", status: "Delivered", pos: "5 of 8", signed: true,
+      actions: nb("Create invoice", true),
+      panel: `
+        <div class="box">
+          <div class="meta">HDEC · received 26 Sep 2026 · against <a href="#">QUT-MT-HDEC-062</a></div>
+          <div class="trio"><div><small>Value</small><b class="num">$490.00</b></div><div><small>Delivered</small><b>2 of 2</b></div><div><small>Invoiced</small><b class="num">$0.00</b></div></div>
+          <div class="signed"><span class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span><span><b>Signed copy saved</b><br><span class="meta">This is the file to send back</span></span><button class="btn sm">Sign again</button></div>
+        </div>
+        <div class="box"><h4>Items</h4>
+          <table class="items"><thead><tr><th>Item</th><th>Ordered</th><th>Delivered</th><th>Invoiced</th></tr></thead>
+          <tbody><tr><td>Currency Counting Machine</td><td>1 EA</td><td>1</td><td class="left">0</td></tr>
+          <tr><td>High Security Steel Cash Locker</td><td>1 EA</td><td>1</td><td class="left">0</td></tr></tbody></table>
+        </div>
+        <div class="box"><h4>Linked documents</h4><div class="chips"><button class="dchip">QUT-MT-HDEC-062</button><button class="dchip">DN-HDEC-067</button></div></div>
+        <div class="box"><details class="more"><summary>Details</summary><dl class="kv"><dt>Contact</dt><dd>Mr. SUNWOO PI</dd><dt>Project</dt><dd>-</dd><dt>ERP No</dt><dd>-</dd></dl></details></div>` },
+    "CSSP-RENT-0002": { kind: "Rental", status: "Running", pos: "4 of 8", signed: false,
+      actions: "",
+      panel: `
+        <div class="box">
+          <div class="meta">HDEC · Rental of Generators · 14 set-months at $850 · against QUT-146 (HDEC's reference)</div>
+          <div class="trio"><div><small>Billed</small><b class="num">$6,800</b></div><div><small>Months</small><b>4 of 7</b></div><div><small>Ends</small><b>8 Jan 2027</b></div></div>
+          <div class="signed"><span class="ok" style="background:var(--amber-soft);color:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 7v6M12 17h.01"/></svg></span><span><b>Not signed yet</b><br><span class="meta">No signed copy saved here</span></span><button class="btn sm primary">Sign and stamp</button></div>
+        </div>
+        <div class="box"><h4>Billing periods <button class="link" style="font-size:12px;text-transform:none;letter-spacing:0">Confirm 4 dates</button></h4>
+          <div class="periods">
+            <div class="prow"><b>8 Jun - 7 Jul</b><span class="st">Billed · estimated</span><button class="dchip">INV-EQ-HDEC-069</button></div>
+            <div class="prow"><b>8 Jul - 7 Aug</b><span class="st">Billed · estimated</span><button class="dchip">INV-EQ-HDEC-070</button></div>
+            <div class="prow"><b>8 Aug - 7 Sep</b><span class="st">Billed · estimated</span><button class="dchip">INV-EQ-HDEC-071</button></div>
+            <div class="prow"><b>8 Sep - 7 Oct</b><span class="st">Billed · estimated</span><button class="dchip">INV-EQ-HDEC-072</button></div>
+            <div class="prow nextp"><b>8 Oct - 7 Nov</b><span class="st">Next, from 8 Oct</span><button class="btn sm">Invoice</button></div>
+            <div class="prow"><b>8 Nov - 7 Dec</b><span class="st">Upcoming</span><span></span></div>
+            <div class="prow"><b>8 Dec - 8 Jan</b><span class="st">Upcoming</span><span></span></div>
+          </div>
+        </div>
+        <div class="box"><details class="more"><summary>Details</summary><dl class="kv"><dt>Recorded monthly rate</dt><dd>$850.00</dd><dt>Project</dt><dd>-</dd><dt>Contact</dt><dd>-</dd></dl></details></div>` },
+  };
+  const order = ["CSSP-RENT-0002", "LPO CSSP-ADM-0033"];
+  let cur = "LPO CSSP-ADM-0033";
+  const openV = (no) => {
+    const v = V[no]; if (!v) return;
+    cur = no;
+    $("#vNo").textContent = no; $("#vKind").textContent = v.kind; $("#vStatus").textContent = v.status; $("#vPos").textContent = v.pos;
+    $("#vActions").innerHTML = v.actions; $("#vPanel").innerHTML = v.panel;
+    $("#fileSwitch").hidden = !v.signed; $("#stampMark").hidden = !v.signed;
+  };
+  document.querySelectorAll("[data-step]").forEach(b => b.addEventListener("click", () => {
+    const i = order.indexOf(cur) + Number(b.dataset.step);
+    openV(order[(i + order.length) % order.length]);
+  }));
+  $("#listTable").addEventListener("click", e => {
+    const tr = e.target.closest("tr[data-no]"); if (!tr || !V[tr.dataset.no]) return;
+    openV(tr.dataset.no); showScreen("viewer"); window.scrollTo({ top: 0 });
+  });
+  openV(cur);
+
+  const more = $("#moreBtn"), pop = $("#morePop");
+  more.addEventListener("click", () => { const open = pop.hidden; pop.hidden = !open; more.setAttribute("aria-expanded", String(open)); });
+  document.addEventListener("click", e => { if (!e.target.closest(".menu")) { pop.hidden = true; more.setAttribute("aria-expanded", "false"); } });
+
+  const asked = new URLSearchParams(location.search);
+  if (asked.get("s")) showScreen(asked.get("s"));
+  if (asked.get("lpo")) openV(asked.get("lpo"));
+  if (asked.get("k")) { const b = document.querySelector(`.filter-chip[data-k="${asked.get("k")}"]`); if (b) b.click(); }
+})();
+</script>
+</body>
+</html>

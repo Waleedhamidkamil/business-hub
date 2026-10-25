@@ -1,0 +1,93 @@
+/* Shared item review content. static/popup.js owns the modal shell. */
+.irp-review { direction: ltr; color: var(--text); display: grid; gap: 12px; }
+.irp-summary { display: inline-flex; align-items: center; gap: 6px; width: max-content;
+    padding: 5px 9px; border: 1px solid var(--border); border-radius: 999px;
+    color: var(--text-muted, var(--text-subtle)); font-size: 11px;
+    background: var(--surface-sunk, #f5f6f8); }
+.irp-summary strong { color: var(--text); }
+.irp-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+.irp-table thead th { position: sticky; top: 0; z-index: 2; padding: 0 9px 7px;
+    text-align: start; color: var(--text-muted, var(--text-subtle)); background: var(--surface);
+    border-bottom: 1px solid var(--border); font-size: 10px; font-weight: 700;
+    letter-spacing: .045em; text-transform: uppercase; }
+.irp-table td { padding: 7px 9px; border-bottom: 1px solid var(--border-soft, var(--border));
+    vertical-align: middle; background: var(--surface); }
+.irp-source { width: 27%; line-height: 1.3; }
+.irp-source strong { display: block; font-size: 12.5px; unicode-bidi: isolate; }
+.irp-source small { display: block; margin-top: 2px; color: var(--text-muted, var(--text-subtle));
+    font-size: 10px; unicode-bidi: isolate; }
+.irp-target { width: 27%; }
+.irp-confirmed { display: grid; gap: 1px; unicode-bidi: isolate; }
+.irp-confirmed strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.irp-confirmed small { color: var(--text-muted, var(--text-subtle)); font-size: 9.5px; }
+.irp-input, .irp-money input, .irp-money select { min-height: 32px; border: 1px solid var(--border);
+    border-radius: 7px; background: var(--surface); color: var(--text); font: inherit;
+    box-sizing: border-box; }
+.irp-input, .irp-money input { width: 100%; padding: 6px 8px; }
+.irp-input:focus, .irp-money input:focus, .irp-money select:focus, .irp-more:focus-visible,
+.irp-candidate:focus-visible { outline: 2px solid var(--navy); outline-offset: 2px; }
+.irp-unit-cell { width: 10%; }
+.irp-unit { min-width: 68px; }
+.irp-unit-known { display: inline-flex; padding: 4px 7px; border-radius: 6px;
+    background: var(--surface-sunk, #f5f6f8); color: var(--text-muted, var(--text-subtle));
+    font-size: 11px; }
+.irp-required-cell { width: 20%; }
+.irp-required { display: grid; gap: 3px; }
+.irp-required > span { color: var(--text-muted, var(--text-subtle)); font-size: 9.5px;
+    font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+.irp-money { display: flex; gap: 5px; min-width: 0; }
+.irp-money input { min-width: 72px; }
+.irp-money select { flex: 0 0 auto; padding: 4px 6px; }
+.irp-tools { width: 1%; white-space: nowrap; text-align: end; }
+.irp-more { min-height: 32px; padding: 0 9px; border: 1px solid var(--border); border-radius: 7px;
+    color: var(--text-muted, var(--text-subtle)); background: var(--surface); font: inherit;
+    transition: transform 160ms ease-out, color 160ms ease-out, border-color 160ms ease-out; }
+.irp-more:active { transform: scale(.97); }
+.irp-more[aria-expanded="true"] { color: var(--navy); border-color: var(--navy); }
+.irp-skip { display: inline-flex; align-items: center; gap: 4px; margin-inline-start: 7px;
+    color: var(--text-muted, var(--text-subtle)); font-size: 10px; }
+.irp-row.is-skipped td, .irp-extra.is-skipped td { opacity: .46; }
+.irp-extra td { padding: 10px 12px 12px; background: var(--surface-sunk, var(--bg)); }
+.irp-detail-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, .55fr);
+    gap: 10px; }
+.irp-detail-field { display: grid; gap: 4px; color: var(--text); font-size: 11px; }
+.irp-detail-field small { color: var(--text-muted, var(--text-subtle)); font-weight: 400; }
+.irp-private > span { color: var(--teal, #0f766e); }
+.irp-candidates { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 9px;
+    color: var(--text-muted, var(--text-subtle)); font-size: 10px; }
+.irp-candidate { display: inline-grid; gap: 1px; padding: 4px 9px; border: 1px solid var(--border);
+    border-radius: 999px; background: var(--surface); color: var(--text); text-align: start;
+    box-shadow: none; height: auto; font: inherit; transition: transform 160ms ease-out,
+    color 160ms ease-out, border-color 160ms ease-out; }
+.irp-candidate:active { transform: scale(.97); }
+.irp-candidate small { color: var(--text-muted, var(--text-subtle)); font-size: 9px; }
+.irp-candidate.is-selected { border-color: var(--navy); color: var(--navy); font-weight: 700; }
+.irp-candidate.is-selected::before { content: "Selected"; font-size: 8px; font-weight: 600; }
+.irp-document-only { display: flex; align-items: center; gap: 6px; margin-top: 9px;
+    color: var(--text-muted, var(--text-subtle)); font-size: 10px; }
+.irp-input.is-ai-suggested { border-style: dashed; border-color: var(--navy); }
+.irp-row.has-ai-suggestion .irp-source::after { content: "AI suggestion, check before saving";
+    display: block; width: max-content; max-width: 100%; margin-top: 4px; padding: 1px 6px;
+    border: 1px dashed var(--navy); border-radius: 999px; color: var(--navy); font-size: 8.5px; }
+.irp-row.has-errors > td { background: #fff8f6; }
+.irp-input[aria-invalid="true"], .irp-money input[aria-invalid="true"],
+.irp-candidates[aria-invalid="true"] { border-color: #b54708;
+    box-shadow: 0 0 0 2px rgba(181, 71, 8, .12); }
+.irp-candidates[aria-invalid="true"] { padding: 7px; border: 1px solid #b54708;
+    border-radius: 8px; }
+.irp-field-error { display: block; margin-top: 4px; color: #9a3412;
+    font-size: 10px; font-weight: 700; line-height: 1.35; }
+@media (max-width: 760px) {
+    .irp-table, .irp-table tbody, .irp-row, .irp-row td, .irp-extra, .irp-extra td {
+        display: block; width: 100%; box-sizing: border-box; }
+    .irp-table thead { display: none; }
+    .irp-row { padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .irp-row td { border: 0; padding: 4px 9px; }
+    .irp-tools { text-align: start; }
+    .irp-extra td { border-bottom: 1px solid var(--border); }
+    .irp-detail-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .irp-more, .irp-candidate { transition: opacity 100ms ease; }
+    .irp-more:active, .irp-candidate:active { transform: none; }
+}

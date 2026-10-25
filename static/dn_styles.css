@@ -1,0 +1,189 @@
+/* =========================================================
+   Delivery Note document styles (English, LTR) - matches DN REF.pdf.
+   Navy header, "Delivery Note" title, bordered items table, two sign
+   boxes (Recipient left, Supplier right) pinned to page bottom.
+   ========================================================= */
+
+@page { size: A4; margin: 12mm 12mm 12mm 12mm; }
+
+html, body {
+    margin: 0; padding: 0;
+    font-family: "Bahnschrift", "Roboto Condensed", "Arial Narrow",
+                 "Roboto", "Segoe UI", sans-serif;
+    color: #000;
+    background: #fff;
+}
+
+.dn-document { direction: ltr; }
+
+.dn-page {
+    position: relative;
+    box-sizing: border-box;
+    width: 186mm;
+    min-height: 273mm;
+    margin: 0 auto;
+}
+.dn-page.page-break { page-break-after: always; }
+
+/* ---------- header ---------- */
+.d-header {
+    display: flex; flex-direction: row;
+    align-items: center; justify-content: space-between;
+    gap: 12px; padding: 2px 0 6px 0;
+}
+.d-logo { flex: 0 0 auto; }
+.d-logo img { max-height: 80px; max-width: 170px; display: block; }
+.d-company {
+    flex: 1 1 auto; text-align: right;
+    color: var(--brand); font-weight: 600; font-size: 15pt; line-height: 1.3;
+}
+.d-rule { border-bottom: 2px solid #000; margin-bottom: 6px; }
+
+.d-title {
+    text-align: center;
+    color: var(--brand);
+    font-size: 22pt; font-weight: 600;
+    margin: 4px 0 12px 0;
+}
+
+/* ---------- meta block (label : value with underline) ---------- */
+.d-meta {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 4px; margin-bottom: 10px;
+}
+.d-mrow { display: flex; flex-direction: row; align-items: baseline; }
+.d-lbl {
+    width: 56mm; text-align: right; padding-right: 10mm;
+    font-size: 11pt; font-weight: 600;
+}
+.d-val {
+    width: 70mm; text-align: center; font-size: 11pt;
+    border-bottom: 1px solid #000;
+    min-height: 16px; padding-bottom: 1px;
+}
+
+/* ---------- items table ---------- */
+.d-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    font-size: 10pt;
+}
+.d-table th, .d-table td {
+    border: 1px solid #000;
+    padding: 2px 4px;
+    text-align: center;
+    vertical-align: middle;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    /* Preserve newlines users type with Enter inside a cell. */
+    white-space: pre-wrap;
+}
+/* The thead reserve is the ENGINE's DN_HEADER_ROW_MM, published as --dn-head-mm
+   (2026-09-05, docs/12 SS4.7). It used to be a second copy of the number
+   written here as a literal; A-84 is what two copies of one millimetre
+   value cost. The fallback exists only for a render that forgot to publish
+   it - keep it equal to the engine default. */
+.d-table thead th { font-weight: 700; height: var(--dn-head-mm, 9mm); }
+/* Phase L.3 - row height comes from a CSS variable set per-page by the
+   pagination engine (via inline <style>). 12mm is the compact default for
+   dense packing. The engine bumps this up so few-item pages still look
+   generous, but never below 12mm so dense packing works. */
+.d-table tbody tr { height: var(--dn-row-mm, 12mm); }
+/* Auto-fit: each row hugs its text exactly - no fixed/stretched height. */
+.d-table.d-table--autofit tbody tr { height: auto; }
+.d-table.d-table--autofit tbody td { vertical-align: middle; line-height: 1.18; }
+
+/* THE TOTALS ROWS ARE NOT DATA ROWS (2026-09-05).
+   They sit inside <tbody>, so the rule above reaches them - and the engine
+   reserves a FIXED height for them, not the data-row height. A wrapping
+   description that pushed the data row to 69mm made each of these 69mm too,
+   against the 11mm the engine booked, and shoved the closing block onto a
+   page of its own that still printed "Page 1 of 1".
+   That is the A-84 defect in another table: a height rule matching more rows
+   than the engine models. The value comes FROM the engine (DN_GRAND_ROW_MM) via
+   --dn-grand-mm, so the booked millimetres and the drawn millimetres are one number.
+   The quotation avoids this a different way - its grand-total row is OUTSIDE
+   <tbody> entirely. Either is fine; drifting is not.
+   Guarded by tests/layout_planned_matches_rendered.test.py. */
+.d-table tbody tr.d-grand-row,
+.d-table.d-table--autofit tbody tr.d-grand-row { height: var(--dn-grand-mm, 11mm); }
+.d-table .al-center { text-align: center; }
+.d-table .al-left   { text-align: left; }
+
+/* Grand-total row (only when include_prices). */
+.d-table .d-grand-row td { height: 11mm; background: #f6f8fb; }
+.d-table .d-grand-lbl    { font-size: 13pt; font-weight: 700; }
+.d-table .d-grand-words  { font-size: 10.5pt; font-style: italic; }
+.d-table .d-grand-amt    { font-weight: 700; font-size: 11.5pt; }
+
+/* ---------- closing line ---------- */
+.d-closing {
+    text-align: center;
+    font-size: 11pt; font-weight: 700;
+    margin: 6mm 0 0 0; padding: 0 4mm;
+}
+
+/* ---------- footer (pinned bottom): Recipient | Supplier ---------- */
+.d-footer {
+    position: absolute;
+    bottom: 6mm;
+    left: 0; right: 0;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0 12mm;
+    box-sizing: border-box;
+}
+.d-sign { width: 70mm; text-align: center; }
+.d-sign-line { border-top: 1px solid #000; margin-bottom: 4px; min-height: 6mm; }
+.d-sign-label { font-weight: 700; font-size: 12pt; }
+
+
+/* ============================================================
+   Phase K.1 - Digital signature & stamp overlay (shared).
+   Each signature box gets .sig-box → position:relative so the
+   overlay can be absolutely anchored to it. Images sit ABOVE
+   the line: stamp on top, signature scribble in front of the
+   stamps lower edge crossing the line. Each instance comes
+   with its own random translate/rotate baked into inline style.
+   ============================================================ */
+.sig-box { position: relative; }
+
+.sig-overlay {
+    /* Height of the printed title + name under the line, measured from the box
+       bottom (2026-10-07). signing.render_overlay_html lands the stamp and the
+       signature INSIDE this block so a screenshot cannot take them clean. */
+    --sig-text-h: 4.2mm;
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 5;
+    overflow: visible;
+}
+.sig-stamp,
+.sig-hand {
+    position: absolute;
+    transform-origin: 50% 100%;
+    object-fit: contain;
+    /* The name shows through the ink, as under a real rubber stamp. */
+    mix-blend-mode: multiply;
+}
+.sig-stamp { z-index: 2; opacity: 0.95; }
+.sig-hand  { z-index: 3; }
+
+
+/* Phase L.4 - page number footer, dropped well below the doc footer so
+   the signature/payment block can't clash with it. */
+.page-number {
+    position: absolute;
+    bottom: 0mm;
+    left: 5mm;
+    font-size: 7.5pt;
+    color: #999;
+    font-family: "Aptos", "Segoe UI", "Tahoma", sans-serif;
+    letter-spacing: 0.02em;
+    z-index: 10;
+    pointer-events: none;
+}

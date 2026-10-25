@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>{{ quote.quote_no or 'Quotation' }}</title>
+{% if inline_css %}<style>{{ css_text|safe }}</style>{% else %}<link rel="stylesheet" href="{{ css_href }}">{% endif %}
+</head>
+<body class="quote-document" style="--brand: {{ brand }};">
+
+{% for page in pages %}
+<section class="quote-page{% if not loop.last %} page-break{% endif %}{% if page.pin_footer %} pinned-footer{% endif %}">
+
+    {% if page.show_header %}
+    <header class="q-header">
+        <div class="q-logo">{% if logo_data_uri %}<img src="{{ logo_data_uri }}" alt="logo">{% endif %}</div>
+        <div class="q-company">
+            {% for line in company.name_lines %}<div>{{ line }}</div>{% endfor %}
+        </div>
+    </header>
+    <div class="q-rule"></div>
+
+    <h1 class="q-title">{{ company.title }}</h1>
+
+    <div class="q-meta">
+        <div class="q-mrow"><div class="q-lbl">Date</div><div class="q-val">{{ quote.date }}</div></div>
+        {# One order and one spelling on quotation, delivery note and invoice
+           (2026-10-02): Date, number, the client's reference, then the client
+           and its address together. #}
+        <div class="q-mrow"><div class="q-lbl">Quotation No.</div><div class="q-val">{{ quote.quote_no }}</div></div>
+        <div class="q-mrow"><div class="q-lbl">RFQ No.</div><div class="q-val">{{ quote.rfq_no }}</div></div>
+        <div class="q-mrow"><div class="q-lbl">Client Name</div><div class="q-val">{{ quote.client_name }}</div></div>
+        <div class="q-mrow"><div class="q-lbl">Client Address</div><div class="q-val">{{ quote.client_address }}</div></div>
+    </div>
+    {% endif %}
+
+    {# Phase L.3 - --q-row-mm controls row height per page (matches the CSS
+       variable in quote_styles.css).
+       2026-07-30 - --q-img-mm carries the IMAGE row height (the `image_row_min_mm`
+       setting). The CSS used to hard-cap image cells at 22mm, so raising the
+       setting reserved page space the picture never grew into; the cap now
+       follows the same number the paginator reserves. #}
+    <table class="q-table{% if autofit %} q-table--autofit{% endif %}" style="
+            --q-row-mm: {{ page.row_min_mm if page.row_min_mm else 12 }}mm;
+            {% if page.head_row_mm %}--q-head-mm: {{ page.head_row_mm }}mm;{% endif %}
+            --q-img-mm: {{ image_row_mm }}mm;
+            --q-img-autofit-mm: {{ image_row_autofit_mm }}mm;
+            {% if page.fill_table %}height: {{ page.table_area_mm }}mm;{% endif %}">
+        <thead>
+            <tr>
+                {% for c in columns %}<th class="al-{{ c.align }}" style="width: {{ c.width }}%;">{{ c.head }}</th>{% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in page.display_rows %}
+            <tr>
+                {%- for cell in row -%}
+                <td class="al-{{ cell.align }}{% if cell.is_image %} cell-image{% endif %}">{% if cell.is_image and cell.val %}<img src="{{ cell.val }}" alt="">{% else %}{{ cell.val }}{% endif %}</td>
+                {%- endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+        {% if page.is_last and grand_total %}
+        <tfoot>
+            <tr class="q-grand">
+                <td colspan="{{ grand_total.label_span }}">Grand Total</td>
+                <td colspan="{{ grand_total.words_span }}">{{ grand_total.words }}</td>
+                <td colspan="{{ grand_total.amount_span }}">{{ grand_total.amount }}</td>
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+
+    {% if page.show_footer %}
+    <p class="q-closing">{{ company.closing }}</p>
+
+    <div class="q-footer">
+        {# No terms => drop the whole block, not an empty heading. #}
+        {% if terms %}
+        <div class="q-terms">
+            <div class="q-terms-title">Terms &amp; Conditions:</div>
+            <ol>
+                {% for t in terms %}<li>{{ t }}</li>{% endfor %}
+            </ol>
+        </div>
+        {% endif %}
+        <div class="q-signature sig-box">
+            {{ sig_overlay_main|safe }}
+            <div class="q-sig-line"></div>
+            <div class="q-sig-name">{{ company.signature_name }}</div>
+            <div class="q-sig-title">{{ company.signature_title }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    {# Phase L.3 - page number bottom-left. #}
+    <div class="page-number">Page {{ page.page_index }} of {{ page.total_pages }}</div>
+
+</section>
+{% endfor %}
+
+</body>
+</html>

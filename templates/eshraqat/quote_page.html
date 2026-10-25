@@ -1,0 +1,57 @@
+{% import 'eshraqat/_components.html' as esh with context %}
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<title>{{ quote.quote_no or 'Quotation' }}</title>
+{% if inline_css %}<style>{{ css_text|safe }}</style>{% else %}<link rel="stylesheet" href="{{ css_href }}">{% endif %}
+</head>
+<body class="esh-document esh-quote-document" style="--brand: {{ brand }};">
+
+{% for page in pages %}
+<section class="esh-page{% if not loop.last %} page-break{% endif %}"
+         data-page-role="{{ 'single' if page.total_pages == 1 else ('first' if page.show_header else ('last' if page.is_last else 'continuation')) }}">
+
+    {% if page.show_header %}
+    {{ esh.header() }}
+    {{ esh.meta_grid(meta_rows) }}
+    {% endif %}
+
+    <table class="esh-table{% if autofit %} esh-table--autofit{% endif %}" style="
+            --esh-row-mm: {{ page.row_min_mm if page.row_min_mm else 11 }}mm;
+            {% if page.fill_table %}height: {{ page.table_area_mm }}mm;{% endif %}">
+        {{ esh.table_header(columns) }}
+        <tbody>
+            {% for row in page.display_rows %}
+            <tr>
+                {%- for cell in row -%}
+                <td class="al-{{ cell.align }}{% if cell.is_image %} cell-image{% endif %}">{% if cell.is_image and cell.val %}<img src="{{ cell.val }}" alt="">{% else %}{{ cell.val }}{% endif %}</td>
+                {%- endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if page.show_footer %}
+    <div class="esh-closing-zone">
+        {% if grand_total %}
+        {{ esh.amount_totals(
+            total_rows if total_rows else [{'label': 'Grand Total', 'value': grand_total.amount, 'grand': true}],
+            grand_total.words,
+            quote.currency or 'USD'
+        ) }}
+        {% endif %}
+    </div>
+    {# terms + signature is pushed to the bottom of the page (above the footer)
+       via margin-top:auto on the flex page - matches the Eshraqat design; the
+       gap simply collapses on a full last page so it can never overlap. #}
+    {{ esh.terms_signing(terms, sig_overlay_main, 'Authorized Signatory') }}
+    {{ esh.footer() }}
+    {% endif %}
+
+    {{ esh.page_number(page.page_index, page.total_pages) }}
+</section>
+{% endfor %}
+
+</body>
+</html>

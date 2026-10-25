@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>{{ po_no }}</title>
+{% if inline_css %}<style>{{ css_text|safe }}</style>{% else %}<link rel="stylesheet" href="{{ css_href }}">{% endif %}
+{% if col_style %}<style>{{ col_style|safe }}</style>{% endif %}
+{# 2026-08-05 - the picture cap. This MUST match what pdf_generator reserves
+   per image row (PO_IMAGE_ROW_MIN_MM): the estimate books the space, this is
+   what actually stops the image growing past it. Change one, change both.
+
+   2026-09-05 - same contract for the ORDINARY row. `table_row_mm` was passed
+   into this template and never used: the paginator sized a row at
+   config.TABLE_MIN_ROW_MM while po_styles.css rendered a hard 26px + 6px
+   padding = 10.32mm, so every row was under-booked by a third and A-84 packed
+   27 rows onto a sheet that fits 21. It also made the PO-settings row-height
+   box do nothing you could see. Now the setting IS the rendered height. #}
+<style>.po-document {
+  --po-img-mm: {{ pages[0].image_row_mm if pages else 22 }}mm;
+  --po-row-mm: {{ table_row_mm }}mm;
+  --po-head-mm: {{ table_header_mm }}mm;
+}</style>
+</head>
+<body class="po-document">
+{% for page in pages %}
+<section class="po-page{% if not page.show_header %} po-page--cont{% endif %}">
+
+    {# 2026-07-29 - a PO is ONE document paginated over N pages (it used to be N
+       separate POs). Page 1 carries the header/title/meta; continuation pages
+       carry only the table, exactly like quotation/DN/invoice. #}
+    {% if page.show_header %}
+    <!-- ============ HEADER ============ -->
+    <!-- In RTL flex flow, first child appears on the right. -->
+    <header class="po-header">
+        <div class="hdr-ar">
+            {% for line in company.name_ar_lines %}<div>{{ line }}</div>{% endfor %}
+        </div>
+        <div class="hdr-logo">
+            {% if logo_data_uri %}
+                <img src="{{ logo_data_uri }}" alt="logo">
+            {% else %}
+                <div class="logo-placeholder">LOGO</div>
+            {% endif %}
+        </div>
+        <div class="hdr-en">
+            {% for line in company.name_en_lines %}<div>{{ line }}</div>{% endfor %}
+        </div>
+    </header>
+
+    <h1 class="po-title">{{ company.title_ar }}</h1>
+
+    <!-- ============ META ROW (date + po no) ============
+         RTL flex: first cell -> right side.  Within each cell,
+         first span -> right (label), second span -> left (value). -->
+    <div class="po-meta">
+        <div class="meta-cell">
+            <span class="meta-label">التاريخ :</span>
+            <span class="meta-value">{{ po_date }}</span>
+        </div>
+        <div class="meta-cell">
+            <span class="meta-label">رقم الطلب :</span>
+            <span class="meta-value">{{ page.po_no }}</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ============ ITEMS TABLE ============
+         RTL table: first column -> right.  Order matches reference:
+         ت (right) -> المادة -> الوصف -> الوحدة -> العدد -> لشركة -> [صورة] -> السعر (left).
+         صورة is present only when some row carries a picture. -->
+    <table class="items-table{% if autofit %} items-table--autofit{% endif %}{% if page.has_images %} has-images{% endif %}">
+        <thead>
+            <tr>
+                <th class="col-idx">ت</th>
+                <th class="col-name">المادة</th>
+                <th class="col-desc">الوصف</th>
+                <th class="col-unit">الوحدة</th>
+                <th class="col-qty">العدد</th>
+                <th class="col-company">لشركة</th>
+                {% if page.has_images %}<th class="col-image">صورة</th>{% endif %}
+                <th class="col-price">السعر</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in page.rows %}
+            <tr class="{% if not row.filled %}empty-row{% endif %}">
+                <td class="col-idx">{{ row.index if row.filled else '' }}</td>
+                <td class="col-name">{{ row.name or '' }}</td>
+                <td class="col-desc">{{ row.description or '' }}</td>
+                <td class="col-unit">{{ row.unit or '' }}</td>
+                <td class="col-qty">{{ row.qty or '' }}</td>
+                <td class="col-company">{{ row.company or '' }}</td>
+                {% if page.has_images %}<td class="col-image">{% if row.image %}<img src="{{ row.image }}" alt="">{% endif %}</td>{% endif %}
+                <td class="col-price"></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- ============ SIGNATURE (fixed near bottom-left of page) ============ -->
+    {# NOTE: .signature is already `position: absolute` in po_styles.css, so
+       it IS the overlay's positioning context naturally. Do NOT add .sig-box
+       here - that would override its `position: absolute` with `position:
+       relative`, dropping the signature into normal flow and shifting the
+       whole layout (the entire page slides left + the box appears above
+       the table). #}
+    {# Signature on the LAST page only (2026-07-29) - the same rule the
+       quotation/DN/invoice footers follow. `paginate_po` reserves
+       `config.PO_SIGNATURE_MM` on this page so the table cannot reach it. #}
+    {% if page.is_last %}
+    <div class="signature">
+        {{ sig_overlay_main|safe }}
+        <div class="sig-line"></div>
+        <div class="sig-title">{{ company.manager_label_ar }}</div>
+        <div class="sig-name">{{ company.manager_name_ar }}</div>
+    </div>
+    {% endif %}
+
+    {# Phase L.3 - page number bottom-left. Now a genuine "X of Y" across the
+       pages of one PO (it used to always read "1 of 1" per split chunk). #}
+    <div class="page-number" dir="ltr">Page {{ page.page_index }} of {{ page.total_pages }}</div>
+
+</section>
+{% endfor %}
+</body>
+</html>
