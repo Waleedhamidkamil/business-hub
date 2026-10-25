@@ -121,6 +121,10 @@ class UserStore:
     def list(self) -> list[dict]:
         return [self.get(k) for k in sorted(self._load()["users"])]
 
+    def count_enabled_admins(self) -> int:
+        return sum(1 for rec in self._load()["users"].values()
+                   if rec.get("enabled", True) and rec.get("role") == "admin")
+
 
 def default_store() -> UserStore:
     from . import data_dir

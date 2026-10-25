@@ -134,6 +134,12 @@ async function bootstrap() {
         // editors so dates, company identity and file-backed preferences agree.
         await Promise.all([initToday(), initCompanyProfile(), loadUserPreferences()]);
         bindUi();
+        if (window.initOfficeManagement) window.initOfficeManagement();
+        try {
+            const access = await api().activity_can_view();
+            const officeButton = document.getElementById("dashOfficeBtn");
+            if (officeButton) officeButton.hidden = !(access && access.can);
+        } catch (e) { /* non-server desktop mode has no office management */ }
         populateOpenSelectors();
         applyTheme(window.prefGet("theme", "light"), { persist: false });
         if (window.initQuoteModule) window.initQuoteModule();  // from quote.js
@@ -162,7 +168,7 @@ const ALL_VIEWS = ["hubView", "editorView", "openView", "settingsView",
                    "invHubView", "invView", "invOpenView",
                    "dataManagerView", "analyticsView",
                    "lpoView", "lpoDocView", "itemMasterView", "clientMasterView",
-                   "todoView", "activityView"];
+                   "todoView", "activityView", "officeManagementView"];
 
 function hideAllViews() {
     ALL_VIEWS.forEach(id => { const el = document.getElementById(id); if (el) el.hidden = true; });

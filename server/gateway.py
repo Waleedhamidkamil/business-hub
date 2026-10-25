@@ -56,6 +56,7 @@ if str(APP_DIR) not in sys.path:
 
 from server import ExclusiveHTTPServer, data_dir   # noqa: E402
 from server.users import UserStore                  # noqa: E402
+from server.permissions import allows, permissions_for  # noqa: E402
 from backend import activity_log                   # noqa: E402  (stdlib only; never opens company data)
 
 DEFAULT_PORT = 8765
@@ -178,6 +179,16 @@ class Sessions:
         with self._lock:
             if self._data.pop(self._key(token or ""), None) is not None:
                 _write_json(self.path, self._data)
+
+    def revoke_user(self, user: str) -> int:
+        """Invalidate every active token for one account."""
+        with self._lock:
+            keys = [key for key, rec in self._data.items() if rec.get("user") == user]
+            for key in keys:
+                del self._data[key]
+            if keys:
+                _write_json(self.path, self._data)
+            return len(keys)
 
 
 class LoginGuard:
@@ -636,6 +647,20 @@ class Handler(BaseHTTPRequestHandler):
         user = self.server.sessions.user_for(token)
         return user if user and self.server.enabled(user) else None
 
+    def _is_admin(self, user: str) -> bool:
+        rec = self.server.users.get(user) or {}
+        return allows(rec.get("role", ""), "users.manage")
+
+    def _admin_required(self) -> str | None:
+        user = self._user()
+        if not user:
+            self._need_login()
+            return None
+        if not self._is_admin(user):
+            self._json(403, {"ok": False, "error": "Administrator access is required."})
+            return None
+        return user
+
     @property
     def _ip(self) -> str:
         return self.client_address[0] if self.client_address else "?"
@@ -766,9 +791,79 @@ class Handler(BaseHTTPRequestHandler):
                 activity_log.record(source="login", action="logout", outcome="info", person=who, pc=self._pc,
                                     summary=f"{who} logged out")
             return self._json(200, {"ok": True})
+        if path.startswith("/admin/"):
+            return self._admin_api(path[len("/admin/"):], body)
         if path.startswith("/api/"):
             return self._api(path[len("/api/"):], body)
         return self._json(404, {"ok": False, "error": "not found"})
+
+    def _admin_api(self, action: str, body: dict) -> None:
+        actor = self._admin_required()
+        if not actor:
+            return
+        if action == "summary":
+            engines = []
+            with self.server.pool._lock:
+                running = dict(self.server.pool._engines)
+                inflight = dict(self.server.pool._inflight)
+            for name, eng in running.items():
+                engines.append({"user": name, "alive": eng.alive(), "pid": eng.proc.pid,
+                                "port": eng.port, "busy": inflight.get(name, 0) > 0})
+            disk = shutil.disk_usage(self.server.data)
+            return self._json(200, {
+                "ok": True, "users": self.server.users.list(), "engines": engines,
+                "disk": {"free": disk.free, "total": disk.total},
+                "permissions": {role: permissions_for(role)
+                                for role in ("admin", "accountant", "procurement")},
+            })
+        if action == "create-user":
+            target = str(body.get("user") or "").strip().lower()
+            role = str(body.get("role") or "procurement").strip().lower()
+            password = str(body.get("password") or "")
+            display = str(body.get("display") or target).strip()
+            try:
+                self.server.users.add(target, password, role=role, display=display)
+            except (ValueError, KeyError) as exc:
+                return self._json(400, {"ok": False, "error": str(exc)})
+            activity_log.record(source="server", action="create_user", outcome="info", person=actor,
+                                pc=self._pc, summary=f"{actor} created {target}")
+            return self._json(200, {"ok": True, "user": self.server.users.get(target)})
+        if action == "revoke-session":
+            target = str(body.get("user") or "").strip().lower()
+            if not target:
+                return self._json(400, {"ok": False, "error": "user is required"})
+            removed = self.server.sessions.revoke_user(target)
+            activity_log.record(source="server", action="revoke_session", outcome="info",
+                                person=actor, pc=self._pc, summary=f"{actor} revoked {target}'s sessions")
+            return self._json(200, {"ok": True, "removed": removed})
+        if action == "set-enabled":
+            target = str(body.get("user") or "").strip().lower()
+            enabled = bool(body.get("enabled"))
+            rec = self.server.users.get(target)
+            if not rec:
+                return self._json(404, {"ok": False, "error": "Account not found."})
+            if not enabled and rec.get("role") == "admin" and self.server.users.count_enabled_admins() <= 1:
+                return self._json(409, {"ok": False, "error": "The last administrator cannot be disabled."})
+            self.server.users.set_enabled(target, enabled)
+            if not enabled:
+                self.server.sessions.revoke_user(target)
+            activity_log.record(source="server", action="set_enabled", outcome="info", person=actor,
+                                pc=self._pc, summary=f"{actor} {'enabled' if enabled else 'disabled'} {target}")
+            return self._json(200, {"ok": True, "user": self.server.users.get(target)})
+        if action == "reset-password":
+            target = str(body.get("user") or "").strip().lower()
+            password = str(body.get("password") or "")
+            if not self.server.users.get(target):
+                return self._json(404, {"ok": False, "error": "Account not found."})
+            try:
+                self.server.users.set_password(target, password)
+            except (KeyError, ValueError) as exc:
+                return self._json(400, {"ok": False, "error": str(exc)})
+            removed = self.server.sessions.revoke_user(target)
+            activity_log.record(source="server", action="reset_password", outcome="info", person=actor,
+                                pc=self._pc, summary=f"{actor} reset {target}'s password")
+            return self._json(200, {"ok": True, "removed": removed})
+        return self._json(404, {"ok": False, "error": "unknown admin action"})
 
     def _login(self, body: dict) -> None:
         name = str(body.get("user") or "").strip().lower()

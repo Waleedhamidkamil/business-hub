@@ -330,6 +330,31 @@ class LauncherApi:
             self._keep_copies(result)
         return result
 
+    def _admin_call(self, action: str, payload: dict | None = None) -> object:
+        server = self._guard()
+        try:
+            status, body = server.json_call("POST", f"/admin/{action}", payload or {})
+        except NetworkError as e:
+            raise ServerError(f"Could not reach the server: {e}") from e
+        if status == 401:
+            self._back_to_login("You were logged out. Please log in again.")
+            raise ServerError("Please log in again.")
+        if status != 200 or not body.get("ok"):
+            raise ServerError(body.get("error") or f"The server answered {status}.")
+        return body
+
+    def office_management_summary(self) -> dict:
+        return self._admin_call("summary")
+
+    def office_set_enabled(self, user: str, enabled: bool) -> dict:
+        return self._admin_call("set-enabled", {"user": user, "enabled": bool(enabled)})
+
+    def office_revoke_session(self, user: str) -> dict:
+        return self._admin_call("revoke-session", {"user": user})
+
+    def office_reset_password(self, user: str, password: str) -> dict:
+        return self._admin_call("reset-password", {"user": user, "password": password})
+
     def _guard(self) -> Server:
         server = self._server
         if server is None:

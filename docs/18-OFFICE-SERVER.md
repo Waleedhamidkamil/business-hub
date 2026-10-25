@@ -104,6 +104,18 @@ Each was proved by breaking the code on purpose and watching the test go red
 | Accounts | `tests/server_users.test.py`; engines: `tests/server_engine.test.py` |
 | The PDF self-test answers only the server itself | `tests/server_gateway.test.py` (`SelfTestOnlyFromTheServer`) |
 | The log names person, PC and company; only the admin reads it; PC notes survive a network cut | `server_gateway.test.py`, `launcher_client.test.py` |
+
+## Office management
+
+Administrators can use the integrated Office Management screen to review
+accounts, enable or disable an account, reset a password, revoke all sessions
+for a user, and inspect running engines and server disk space. These actions
+are gateway operations and require an authenticated administrator; hiding the
+screen is not relied on for authorization.
+
+The role policy is centralized in `server/permissions.py`. Windows service
+setup, firewall/dependency checks, backups, HTTPS provisioning, and scheduled
+startup remain responsibilities of the separate `SERVER SETUP` utility.
 | The log's own rules (whose fault, swallowed bugs, trimming, trail, pruning, never holding exceptions) | `tests/activity_log.test.py`, `tests/activity_capture.test.js`, `tests/activity_view.test.js` |
 
 ## Measured (2026-10-22, Waleed's PC, a full copy of the real data)

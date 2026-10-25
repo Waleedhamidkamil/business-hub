@@ -467,6 +467,11 @@
             <button class="dash-icon-btn glass" id="dashActivityBtn" title="Activity log - what happened, what broke" aria-label="Activity log" hidden>
                 <svg aria-hidden="true" focusable="false" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
             </button>
+            <button class="dash-icon-btn glass" id="dashOfficeBtn" title="Office management" aria-label="Office management" hidden>
+                <svg aria-hidden="true" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 21h18"/><path d="M5 21V5l7-3 7 3v16"/><path d="M9 21v-5h6v5"/><path d="M8 8h1M15 8h1M8 11h1M15 11h1"/>
+                </svg>
+            </button>
             <button class="dash-icon-btn glass" id="dashLockBtn" title="Lock (Ctrl+L)" aria-label="Lock">
                 <svg aria-hidden="true" focusable="false" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>
@@ -598,6 +603,24 @@
             </div>
         </div>
     </div>
+</main>
+<main id="officeManagementView" class="view todo-view in-view act-view" dir="ltr" hidden>
+    <div class="todo-head">
+        <div><h1>Office management</h1><p class="muted">Accounts, sessions, and server health</p></div>
+        <button id="officeBack" class="secondary">Back</button>
+    </div>
+    <div class="todo-toolbar">
+        <button id="officeRefresh" class="primary">Refresh</button>
+        <span id="officeStatus" class="muted"></span>
+    </div>
+    <section class="panel">
+        <h2>Accounts</h2>
+        <div id="officeUsers" class="table-wrap"></div>
+    </section>
+    <section class="panel">
+        <h2>Server</h2>
+        <div id="officeServer" class="table-wrap"></div>
+    </section>
 </main>
 
 <!-- ===================== PO INFO STRIP ===================== -->
@@ -2178,6 +2201,7 @@
 <script src="../static/doc_verify.js"></script>
 <script src="../static/todo.js"></script>
 <script src="../static/activity.js"></script>
+<script src="../static/office_management.js"></script>
 <script src="../static/po_link.js"></script>
 <script src="../static/document_workflow.js"></script>
 <script src="../static/lib/pdf.min.js"></script>
