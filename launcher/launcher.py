@@ -19,7 +19,14 @@ HERE = Path(__file__).resolve().parent
 if str(HERE.parent) not in sys.path:
     sys.path.insert(0, str(HERE.parent))
 
-from launcher.client import LauncherApi, appdata, login_html  # noqa: E402
+try:
+    from launcher.client import LauncherApi, appdata, login_html  # noqa: E402
+except ModuleNotFoundError as exc:
+    # Direct execution (`python launcher\launcher.py`) puts this file's folder
+    # ahead of the repository root, so the script itself shadows the package.
+    if exc.name != "launcher.client":
+        raise
+    from client import LauncherApi, appdata, login_html  # type: ignore[no-redef]  # noqa: E402
 
 
 def _storage(home: Path | None) -> Path:
