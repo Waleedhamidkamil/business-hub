@@ -1,4 +1,4 @@
-"""The launcher's side of the office server - what runs on each person's PC
+﻿"""The launcher's side of the office server - what runs on each person's PC
 (Phase 2, 2026-10-22).
 
 The screens come from the server (/templates, /static). Every bridge call they
@@ -233,7 +233,7 @@ class Server:
         h = dict(headers or {})
         h.setdefault("X-PC-Name", PC_NAME)          # the activity log names the PC
         if self.token:
-            h["Authorization"] = f"Bearer {self.token}"
+            h["Authorization"] = "Bearer " + self.token
         try:
             try:
                 conn.connect()
@@ -343,16 +343,16 @@ class LauncherApi:
             raise ServerError(body.get("error") or f"The server answered {status}.")
         return body
 
-    def office_management_summary(self) -> dict:
+    def _office_management_summary(self) -> dict:
         return self._admin_call("summary")
 
-    def office_set_enabled(self, user: str, enabled: bool) -> dict:
+    def _office_set_enabled(self, user: str, enabled: bool) -> dict:
         return self._admin_call("set-enabled", {"user": user, "enabled": bool(enabled)})
 
-    def office_revoke_session(self, user: str) -> dict:
+    def _office_revoke_session(self, user: str) -> dict:
         return self._admin_call("revoke-session", {"user": user})
 
-    def office_reset_password(self, user: str, password: str) -> dict:
+    def _office_reset_password(self, user: str, password: str) -> dict:
         return self._admin_call("reset-password", {"user": user, "password": password})
 
     def _guard(self) -> Server:
@@ -689,3 +689,4 @@ class LauncherApi:
     def gate_ready(self, marks: dict | None = None) -> dict:
         """No launch card on a PC: the page goes straight on."""
         return {"ok": True, "gate": False}
+
